@@ -37,5 +37,5 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
-# Run startup script (creates tables, seeds data) then start the app
-CMD ["sh", "-c", "python startup.py && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Start the app (database init happens on first request)
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

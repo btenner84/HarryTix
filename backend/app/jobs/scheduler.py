@@ -21,10 +21,12 @@ def start_scheduler():
         max_instances=1,  # Prevent overlap
     )
 
-    # Also run on startup after a short delay
+    # Run initial collection 30 seconds after startup (to let things settle)
+    from datetime import datetime, timedelta
     scheduler.add_job(
         collect_all_prices,
-        trigger="date",  # Run once
+        trigger="date",
+        run_date=datetime.now() + timedelta(seconds=30),
         id="startup_price_collection",
         name="Initial price collection on startup",
     )
