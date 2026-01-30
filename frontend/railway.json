@@ -4,6 +4,6 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "npm run preview -- --host --port ${PORT:-3000}"
+    "startCommand": "sh -c 'npm run preview -- --host --port ${PORT}'"
   }
 }
