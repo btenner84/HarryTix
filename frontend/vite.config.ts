@@ -9,6 +9,6 @@ export default defineConfig({
   },
   preview: {
     host: true,
-    allowedHosts: true,
+    allowedHosts: ['frontend-production-8485.up.railway.app', 'localhost'],
   },
 })
