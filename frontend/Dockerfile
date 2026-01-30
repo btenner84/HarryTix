@@ -2,15 +2,20 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install dependencies
+# Copy package files
 COPY package*.json ./
-RUN npm install
 
-# Copy source
+# Install dependencies
+RUN npm ci
+
+# Copy source code
 COPY . .
 
-# Expose port
-EXPOSE 5173
+# Build the app
+RUN npm run build
 
-# Start dev server
-CMD ["npm", "run", "dev", "--", "--host"]
+# Expose port
+EXPOSE 8080
+
+# Start preview server
+CMD ["sh", "-c", "npm run preview -- --host --port ${PORT:-8080}"]
