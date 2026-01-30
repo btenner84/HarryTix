@@ -29,6 +29,14 @@ class Settings(BaseSettings):
     @classmethod
     def parse_allowed_origins(cls, v):
         if isinstance(v, str):
+            # Handle JSON array format: ["url1", "url2"]
+            if v.startswith("["):
+                import json
+                try:
+                    return json.loads(v)
+                except json.JSONDecodeError:
+                    pass
+            # Handle comma-separated format
             return [origin.strip() for origin in v.split(",")]
         return v
 
