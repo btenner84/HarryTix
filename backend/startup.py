@@ -6,6 +6,11 @@ Creates database tables and seeds initial data if needed.
 import asyncio
 import os
 import sys
+import traceback
+
+print("=== STARTUP SCRIPT STARTING ===", flush=True)
+print(f"DATABASE_URL env: {os.environ.get('DATABASE_URL', 'NOT SET')[:50]}...", flush=True)
+print(f"ALLOWED_ORIGINS env: {os.environ.get('ALLOWED_ORIGINS', 'NOT SET')}", flush=True)
 
 async def init_database():
     """Initialize database tables and seed data."""
@@ -158,4 +163,11 @@ async def init_database():
 
 
 if __name__ == "__main__":
-    asyncio.run(init_database())
+    try:
+        asyncio.run(init_database())
+        print("=== STARTUP SCRIPT COMPLETED SUCCESSFULLY ===", flush=True)
+    except Exception as e:
+        print(f"=== STARTUP SCRIPT FAILED ===", flush=True)
+        print(f"Error: {e}", flush=True)
+        traceback.print_exc()
+        sys.exit(1)
