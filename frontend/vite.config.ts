@@ -9,6 +9,6 @@ export default defineConfig({
   },
   preview: {
     host: true,
-    allowedHosts: ['.railway.app'],
+    allowedHosts: true,
   },
 })
