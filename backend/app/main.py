@@ -115,8 +115,43 @@ async def startup():
 
         # Register routes
         from app.api.routes import comparison
+        from app.api.routes import history
         app.include_router(comparison.router, prefix="/api", tags=["comparison"])
+        app.include_router(history.router, prefix="/api", tags=["history"])
         logger.info("Routes registered")
+
+        # Start hourly price snapshot scheduler
+        import asyncio
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
+        from apscheduler.triggers.cron import CronTrigger
+
+        scheduler = AsyncIOScheduler()
+
+        async def take_hourly_snapshot():
+            """Take price snapshot every hour"""
+            try:
+                await history.take_snapshot()
+                logger.info("Hourly price snapshot taken")
+            except Exception as e:
+                logger.error(f"Snapshot error: {e}")
+
+        # Run every hour at minute 5
+        scheduler.add_job(
+            take_hourly_snapshot,
+            trigger=CronTrigger(minute=5),
+            id="hourly_snapshot",
+            replace_existing=True,
+        )
+        scheduler.start()
+        logger.info("Hourly snapshot scheduler started")
+
+        # Take initial snapshot after 10 seconds
+        async def initial_snapshot():
+            await asyncio.sleep(10)
+            await history.take_snapshot()
+            logger.info("Initial price snapshot taken")
+
+        asyncio.create_task(initial_snapshot())
 
     except Exception as e:
         logger.error(f"Startup error: {e}")

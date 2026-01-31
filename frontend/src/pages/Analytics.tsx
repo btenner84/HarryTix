@@ -1,170 +1,370 @@
+import { useQuery } from '@tanstack/react-query';
 import { Layout } from '../components/layout/Layout';
 import { useComparison } from '../hooks/useComparison';
+import { api } from '../api/client';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
+
+interface PriceSnapshot {
+  timestamp: string;
+  set_name: string;
+  min_price: number | null;
+  avg_lowest_2: number | null;
+  listings_count: number;
+  total_seats: number;
+}
+
+interface HistoryResponse {
+  snapshots: PriceSnapshot[];
+  last_updated: string | null;
+}
 
 function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) return '-';
   return `$${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
+function formatTime(timestamp: string): string {
+  const date = new Date(timestamp);
+  return date.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+async function fetchHistory(): Promise<HistoryResponse> {
+  const response = await api.get('/history');
+  return response.data;
+}
+
+async function takeSnapshot(): Promise<void> {
+  await api.post('/history/snapshot');
+}
+
 export function Analytics() {
-  const { data, isLoading } = useComparison();
+  const { data: comparison, isLoading: comparisonLoading } = useComparison();
+  const {
+    data: history,
+    isLoading: historyLoading,
+    refetch: refetchHistory,
+  } = useQuery({
+    queryKey: ['history'],
+    queryFn: fetchHistory,
+    refetchInterval: 5 * 60 * 1000,
+  });
 
-  if (isLoading) {
-    return (
-      <Layout>
-        <div style={{ textAlign: 'center', padding: '80px' }}>Loading...</div>
-      </Layout>
-    );
-  }
+  const handleTakeSnapshot = async () => {
+    await takeSnapshot();
+    refetchHistory();
+  };
 
-  if (!data) {
-    return (
-      <Layout>
-        <div style={{ textAlign: 'center', padding: '80px', color: '#666' }}>No data available</div>
-      </Layout>
-    );
-  }
+  // Group snapshots by set for the chart
+  const chartData = history?.snapshots
+    ? (() => {
+        const grouped: Record<string, PriceSnapshot[]> = {};
+        history.snapshots.forEach((s) => {
+          if (!grouped[s.set_name]) grouped[s.set_name] = [];
+          grouped[s.set_name].push(s);
+        });
 
-  const { summary } = data;
+        // Get all unique timestamps and create chart data
+        const timestamps = [...new Set(history.snapshots.map((s) => s.timestamp))].sort();
+        return timestamps.map((ts) => {
+          const point: Record<string, any> = { time: formatTime(ts) };
+          Object.keys(grouped).forEach((setName) => {
+            const snapshot = grouped[setName].find((s) => s.timestamp === ts);
+            if (snapshot) {
+              point[setName] = snapshot.avg_lowest_2;
+            }
+          });
+          return point;
+        });
+      })()
+    : [];
+
+  const setColors: Record<string, string> = {
+    'Set A': '#2563eb',
+    'Set B': '#059669',
+    'Set C': '#d97706',
+    'Set D': '#7c3aed',
+    'Set E': '#dc2626',
+  };
 
   return (
     <Layout>
-      <div style={{ marginBottom: '24px' }}>
-        <h1>Analytics</h1>
-        <p style={{ color: '#666' }}>Revenue projections and profit analysis</p>
+      <div className="page-header">
+        <div>
+          <h1>Analytics</h1>
+          <p className="subtitle">Price history and trends over time</p>
+        </div>
+        <button className="snapshot-btn" onClick={handleTakeSnapshot}>
+          Take Snapshot Now
+        </button>
       </div>
 
-      {/* Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
-        <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <div style={{ color: '#666', fontSize: '13px', marginBottom: '8px' }}>Total Tickets</div>
-          <div style={{ fontSize: '28px', fontWeight: 700 }}>{summary.total_tickets}</div>
+      {/* Current Prices Summary */}
+      {!comparisonLoading && comparison && (
+        <div className="current-prices">
+          <h2>Current Prices</h2>
+          <div className="price-cards">
+            {comparison.sets.map((set) => (
+              <div key={set.set_name} className="price-card" style={{ borderLeftColor: setColors[set.set_name] }}>
+                <div className="price-card-header">
+                  <span className="set-name">{set.set_name}</span>
+                  <span className="section">{set.section}</span>
+                </div>
+                <div className="price-card-body">
+                  <div className="price-row">
+                    <span className="label">Buyer Pays:</span>
+                    <span className="value">{formatCurrency(set.vivid_buyer_price)}</span>
+                  </div>
+                  <div className="price-row">
+                    <span className="label">You Receive:</span>
+                    <span className="value highlight">{formatCurrency(set.vivid_you_receive)}</span>
+                  </div>
+                  <div className="price-row">
+                    <span className="label">Listings:</span>
+                    <span className="value">{set.vivid_market?.listings_count || 0}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <div style={{ color: '#666', fontSize: '13px', marginBottom: '8px' }}>Total Cost</div>
-          <div style={{ fontSize: '28px', fontWeight: 700 }}>{formatCurrency(summary.total_cost)}</div>
-        </div>
-        <div style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', padding: '20px', borderRadius: '12px', borderLeft: '4px solid #2563eb' }}>
-          <div style={{ color: '#666', fontSize: '13px', marginBottom: '8px' }}>Vivid Revenue</div>
-          <div style={{ fontSize: '28px', fontWeight: 700, color: '#1d4ed8' }}>{formatCurrency(summary.total_vivid_revenue)}</div>
-        </div>
-        <div style={{ background: 'linear-gradient(135deg, #fdf4ff 0%, #f3e8ff 100%)', padding: '20px', borderRadius: '12px', borderLeft: '4px solid #9333ea' }}>
-          <div style={{ color: '#666', fontSize: '13px', marginBottom: '8px' }}>StubHub Revenue</div>
-          <div style={{ fontSize: '28px', fontWeight: 700, color: '#7c3aed' }}>{formatCurrency(summary.total_stubhub_revenue)}</div>
-        </div>
+      )}
+
+      {/* Price History Chart */}
+      <div className="chart-section">
+        <h2>Price History</h2>
+        {historyLoading ? (
+          <div className="loading">Loading history...</div>
+        ) : chartData.length > 0 ? (
+          <div className="chart-container">
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="time" tick={{ fontSize: 12 }} />
+                <YAxis
+                  tickFormatter={(value) => `$${value}`}
+                  tick={{ fontSize: 12 }}
+                  domain={['auto', 'auto']}
+                />
+                <Tooltip
+                  formatter={(value: number) => [`$${value?.toFixed(0)}`, '']}
+                  labelStyle={{ fontWeight: 600 }}
+                />
+                <Legend />
+                {Object.keys(setColors).map((setName) => (
+                  <Line
+                    key={setName}
+                    type="monotone"
+                    dataKey={setName}
+                    stroke={setColors[setName]}
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                    connectNulls
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="no-data">
+            <p>No price history yet.</p>
+            <p>Click "Take Snapshot Now" to start tracking, or wait for the hourly automatic snapshot.</p>
+          </div>
+        )}
       </div>
 
-      {/* Profit Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px', marginBottom: '32px' }}>
-        <div style={{ background: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ margin: '0 0 16px', color: '#1d4ed8' }}>Vivid Seats (10% fee)</h3>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ color: '#666' }}>Revenue:</span>
-            <span style={{ fontWeight: 600 }}>{formatCurrency(summary.total_vivid_revenue)}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ color: '#666' }}>Cost:</span>
-            <span style={{ fontWeight: 600 }}>-{formatCurrency(summary.total_cost)}</span>
-          </div>
-          <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb', margin: '12px 0' }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: 700 }}>Profit:</span>
-            <span style={{ fontWeight: 700, fontSize: '20px', color: summary.total_vivid_profit >= 0 ? '#059669' : '#dc2626' }}>
-              {summary.total_vivid_profit >= 0 ? '+' : ''}{formatCurrency(summary.total_vivid_profit)}
-            </span>
-          </div>
-        </div>
-
-        <div style={{ background: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ margin: '0 0 16px', color: '#7c3aed' }}>StubHub (15% fee)</h3>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ color: '#666' }}>Revenue:</span>
-            <span style={{ fontWeight: 600 }}>{formatCurrency(summary.total_stubhub_revenue)}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ color: '#666' }}>Cost:</span>
-            <span style={{ fontWeight: 600 }}>-{formatCurrency(summary.total_cost)}</span>
-          </div>
-          <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb', margin: '12px 0' }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: 700 }}>Profit:</span>
-            <span style={{ fontWeight: 700, fontSize: '20px', color: summary.total_stubhub_profit >= 0 ? '#059669' : '#dc2626' }}>
-              {summary.total_stubhub_profit >= 0 ? '+' : ''}{formatCurrency(summary.total_stubhub_profit)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Per-Set Breakdown */}
-      <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb' }}>
-          <h3 style={{ margin: 0 }}>Profit by Set</h3>
-        </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-          <thead>
-            <tr style={{ background: '#f9fafb' }}>
-              <th style={{ padding: '12px 16px', textAlign: 'left' }}>Set</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left' }}>Section</th>
-              <th style={{ padding: '12px 16px', textAlign: 'center' }}>Qty</th>
-              <th style={{ padding: '12px 16px', textAlign: 'right' }}>Cost</th>
-              <th style={{ padding: '12px 16px', textAlign: 'right', background: '#eff6ff' }}>Vivid Profit</th>
-              <th style={{ padding: '12px 16px', textAlign: 'right', background: '#fdf4ff' }}>StubHub Profit</th>
-              <th style={{ padding: '12px 16px', textAlign: 'center' }}>Best</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.sets.map((set) => {
-              const vividProfit = set.vivid_you_receive
-                ? (set.vivid_you_receive - set.cost_per_ticket) * set.quantity
-                : null;
-              const stubhubProfit = set.stubhub_you_receive
-                ? (set.stubhub_you_receive - set.cost_per_ticket) * set.quantity
-                : null;
-
-              return (
-                <tr key={set.set_name} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                  <td style={{ padding: '12px 16px', fontWeight: 600 }}>{set.set_name}</td>
-                  <td style={{ padding: '12px 16px' }}>{set.section}</td>
-                  <td style={{ padding: '12px 16px', textAlign: 'center' }}>{set.quantity}</td>
-                  <td style={{ padding: '12px 16px', textAlign: 'right' }}>{formatCurrency(set.total_cost)}</td>
-                  <td style={{
-                    padding: '12px 16px',
-                    textAlign: 'right',
-                    background: '#eff6ff',
-                    color: vividProfit !== null ? (vividProfit >= 0 ? '#059669' : '#dc2626') : '#666',
-                    fontWeight: 600
-                  }}>
-                    {vividProfit !== null ? `${vividProfit >= 0 ? '+' : ''}${formatCurrency(vividProfit)}` : '-'}
-                  </td>
-                  <td style={{
-                    padding: '12px 16px',
-                    textAlign: 'right',
-                    background: '#fdf4ff',
-                    color: stubhubProfit !== null ? (stubhubProfit >= 0 ? '#059669' : '#dc2626') : '#666',
-                    fontWeight: 600
-                  }}>
-                    {stubhubProfit !== null ? `${stubhubProfit >= 0 ? '+' : ''}${formatCurrency(stubhubProfit)}` : '-'}
-                  </td>
-                  <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                    {set.best_platform && (
-                      <span style={{
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        background: set.best_platform === 'Vivid' ? '#dbeafe' : '#f3e8ff',
-                        color: set.best_platform === 'Vivid' ? '#1d4ed8' : '#7c3aed'
-                      }}>
-                        {set.best_platform}
-                      </span>
-                    )}
-                  </td>
+      {/* History Table */}
+      {history && history.snapshots.length > 0 && (
+        <div className="history-table-section">
+          <h2>Recent Snapshots</h2>
+          <div className="table-container">
+            <table className="history-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Set</th>
+                  <th>Avg Price</th>
+                  <th>Min Price</th>
+                  <th>Listings</th>
+                  <th>Seats</th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {history.snapshots.slice(0, 25).map((snapshot, idx) => (
+                  <tr key={idx}>
+                    <td>{formatTime(snapshot.timestamp)}</td>
+                    <td>
+                      <span
+                        className="set-badge"
+                        style={{ background: setColors[snapshot.set_name] + '20', color: setColors[snapshot.set_name] }}
+                      >
+                        {snapshot.set_name}
+                      </span>
+                    </td>
+                    <td className="price">{formatCurrency(snapshot.avg_lowest_2)}</td>
+                    <td className="price">{formatCurrency(snapshot.min_price)}</td>
+                    <td>{snapshot.listings_count}</td>
+                    <td>{snapshot.total_seats}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .page-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 32px;
+        }
+        .page-header h1 {
+          margin: 0;
+          font-size: 28px;
+          font-weight: 700;
+        }
+        .subtitle {
+          color: #666;
+          margin: 4px 0 0;
+        }
+        .snapshot-btn {
+          background: #2563eb;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 8px;
+          font-weight: 500;
+          cursor: pointer;
+        }
+        .snapshot-btn:hover {
+          background: #1d4ed8;
+        }
+
+        .current-prices {
+          margin-bottom: 32px;
+        }
+        .current-prices h2 {
+          font-size: 18px;
+          margin: 0 0 16px;
+        }
+        .price-cards {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 16px;
+        }
+        .price-card {
+          background: white;
+          border-radius: 8px;
+          padding: 16px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          border-left: 4px solid #2563eb;
+        }
+        .price-card-header {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 12px;
+        }
+        .set-name {
+          font-weight: 700;
+          font-size: 16px;
+        }
+        .section {
+          font-size: 12px;
+          color: #666;
+        }
+        .price-row {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 6px;
+          font-size: 14px;
+        }
+        .price-row .label {
+          color: #666;
+        }
+        .price-row .value {
+          font-weight: 600;
+        }
+        .price-row .highlight {
+          color: #2563eb;
+        }
+
+        .chart-section {
+          background: white;
+          border-radius: 12px;
+          padding: 24px;
+          margin-bottom: 32px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .chart-section h2 {
+          font-size: 18px;
+          margin: 0 0 20px;
+        }
+        .chart-container {
+          width: 100%;
+          height: 400px;
+        }
+        .loading, .no-data {
+          text-align: center;
+          padding: 60px;
+          color: #666;
+        }
+        .no-data p {
+          margin: 8px 0;
+        }
+
+        .history-table-section {
+          background: white;
+          border-radius: 12px;
+          padding: 24px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .history-table-section h2 {
+          font-size: 18px;
+          margin: 0 0 16px;
+        }
+        .table-container {
+          overflow-x: auto;
+        }
+        .history-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 14px;
+        }
+        .history-table th,
+        .history-table td {
+          padding: 10px 12px;
+          text-align: left;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        .history-table th {
+          background: #f9fafb;
+          font-weight: 600;
+        }
+        .set-badge {
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+        .history-table .price {
+          font-weight: 600;
+        }
+      `}</style>
     </Layout>
   );
 }
