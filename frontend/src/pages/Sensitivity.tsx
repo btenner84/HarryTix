@@ -3,7 +3,6 @@ import { Layout } from '../components/layout/Layout';
 import { useComparison } from '../hooks/useComparison';
 
 const VIVID_FEE = 0.10;
-const STUBHUB_FEE = 0.15;
 
 function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) return '-';
@@ -26,8 +25,7 @@ export function Sensitivity() {
   };
 
   // Calculate totals
-  let totalVividProfit = 0;
-  let totalStubHubProfit = 0;
+  let totalProfit = 0;
   let totalCost = 0;
 
   if (data) {
@@ -35,10 +33,8 @@ export function Sensitivity() {
       const price = getPrice(set.set_name);
       totalCost += set.cost_per_ticket * set.quantity;
       if (price) {
-        const vividReceive = price * (1 - VIVID_FEE);
-        const stubhubReceive = price * (1 - STUBHUB_FEE);
-        totalVividProfit += (vividReceive - set.cost_per_ticket) * set.quantity;
-        totalStubHubProfit += (stubhubReceive - set.cost_per_ticket) * set.quantity;
+        const receive = price * (1 - VIVID_FEE);
+        totalProfit += (receive - set.cost_per_ticket) * set.quantity;
       }
     });
   }
@@ -47,7 +43,7 @@ export function Sensitivity() {
     <Layout>
       <div className="page-header">
         <h1>Sensitivity Calculator</h1>
-        <p className="subtitle">Enter selling prices to calculate projected profit</p>
+        <p className="subtitle">Enter selling prices to calculate projected profit (Vivid Seats - 10% fee)</p>
       </div>
 
       {isLoading ? (
@@ -66,19 +62,17 @@ export function Sensitivity() {
                   <th>Qty</th>
                   <th>Your Cost</th>
                   <th>Sell Price</th>
-                  <th className="col-vivid">Vivid You Get</th>
-                  <th className="col-vivid">Vivid Profit</th>
-                  <th className="col-stubhub">StubHub You Get</th>
-                  <th className="col-stubhub">StubHub Profit</th>
+                  <th>You Receive</th>
+                  <th>Profit/Ticket</th>
+                  <th>Total Profit</th>
                 </tr>
               </thead>
               <tbody>
                 {data.sets.map((set) => {
                   const price = getPrice(set.set_name);
-                  const vividReceive = price ? price * (1 - VIVID_FEE) : null;
-                  const stubhubReceive = price ? price * (1 - STUBHUB_FEE) : null;
-                  const vividProfit = vividReceive ? (vividReceive - set.cost_per_ticket) * set.quantity : null;
-                  const stubhubProfit = stubhubReceive ? (stubhubReceive - set.cost_per_ticket) * set.quantity : null;
+                  const receive = price ? price * (1 - VIVID_FEE) : null;
+                  const profitPerTicket = receive ? receive - set.cost_per_ticket : null;
+                  const totalSetProfit = profitPerTicket ? profitPerTicket * set.quantity : null;
 
                   return (
                     <tr key={set.set_name}>
@@ -99,13 +93,12 @@ export function Sensitivity() {
                           />
                         </div>
                       </td>
-                      <td className="col-vivid cell-highlight">{formatCurrency(vividReceive)}</td>
-                      <td className={`col-vivid ${vividProfit !== null ? (vividProfit >= 0 ? 'cell-positive' : 'cell-negative') : ''}`}>
-                        {vividProfit !== null ? `${vividProfit >= 0 ? '+' : ''}${formatCurrency(vividProfit)}` : '-'}
+                      <td className="cell-highlight">{formatCurrency(receive)}</td>
+                      <td className={profitPerTicket !== null ? (profitPerTicket >= 0 ? 'cell-positive' : 'cell-negative') : ''}>
+                        {profitPerTicket !== null ? `${profitPerTicket >= 0 ? '+' : ''}${formatCurrency(profitPerTicket)}` : '-'}
                       </td>
-                      <td className="col-stubhub cell-highlight">{formatCurrency(stubhubReceive)}</td>
-                      <td className={`col-stubhub ${stubhubProfit !== null ? (stubhubProfit >= 0 ? 'cell-positive' : 'cell-negative') : ''}`}>
-                        {stubhubProfit !== null ? `${stubhubProfit >= 0 ? '+' : ''}${formatCurrency(stubhubProfit)}` : '-'}
+                      <td className={`cell-total ${totalSetProfit !== null ? (totalSetProfit >= 0 ? 'cell-positive' : 'cell-negative') : ''}`}>
+                        {totalSetProfit !== null ? `${totalSetProfit >= 0 ? '+' : ''}${formatCurrency(totalSetProfit)}` : '-'}
                       </td>
                     </tr>
                   );
@@ -113,25 +106,22 @@ export function Sensitivity() {
               </tbody>
               <tfoot>
                 <tr className="totals-row">
-                  <td colSpan={5}></td>
+                  <td colSpan={4}></td>
                   <td className="totals-label">TOTAL</td>
-                  <td className="col-vivid"></td>
-                  <td className={`col-vivid totals-value ${totalVividProfit >= 0 ? 'cell-positive' : 'cell-negative'}`}>
-                    {totalVividProfit !== 0 ? `${totalVividProfit >= 0 ? '+' : ''}${formatCurrency(totalVividProfit)}` : '-'}
-                  </td>
-                  <td className="col-stubhub"></td>
-                  <td className={`col-stubhub totals-value ${totalStubHubProfit >= 0 ? 'cell-positive' : 'cell-negative'}`}>
-                    {totalStubHubProfit !== 0 ? `${totalStubHubProfit >= 0 ? '+' : ''}${formatCurrency(totalStubHubProfit)}` : '-'}
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td className={`totals-value ${totalProfit >= 0 ? 'cell-positive' : 'cell-negative'}`}>
+                    {totalProfit !== 0 ? `${totalProfit >= 0 ? '+' : ''}${formatCurrency(totalProfit)}` : '-'}
                   </td>
                 </tr>
               </tfoot>
             </table>
           </div>
 
-          <div className="fee-info">
-            <span className="fee-badge fee-vivid">Vivid: 10% seller fee</span>
-            <span className="fee-badge fee-stubhub">StubHub: 15% seller fee</span>
-            <span className="fee-note">Total Cost: {formatCurrency(totalCost)}</span>
+          <div className="info-section">
+            <p><strong>Total Cost:</strong> {formatCurrency(totalCost)}</p>
+            <p><strong>Vivid Seats Fee:</strong> 10% (you receive 90% of sell price)</p>
           </div>
         </>
       ) : null}
@@ -191,12 +181,6 @@ export function Sensitivity() {
         .comparison-table tbody tr:hover {
           background: #f9fafb;
         }
-        .col-vivid {
-          background: #eff6ff !important;
-        }
-        .col-stubhub {
-          background: #fdf4ff !important;
-        }
         .cell-set {
           font-weight: 600;
         }
@@ -208,6 +192,7 @@ export function Sensitivity() {
         }
         .cell-highlight {
           font-weight: 600;
+          color: #2563eb;
         }
         .cell-positive {
           color: #059669;
@@ -216,6 +201,10 @@ export function Sensitivity() {
         .cell-negative {
           color: #dc2626;
           font-weight: 600;
+        }
+        .cell-total {
+          font-weight: 700;
+          font-size: 15px;
         }
         .price-input-wrapper {
           display: flex;
@@ -255,33 +244,19 @@ export function Sensitivity() {
           text-align: right;
         }
         .totals-value {
-          font-size: 16px;
+          font-size: 18px;
           font-weight: 700;
         }
-        .fee-info {
-          display: flex;
-          gap: 16px;
+        .info-section {
           margin-top: 16px;
-          align-items: center;
-        }
-        .fee-badge {
-          padding: 6px 12px;
-          border-radius: 6px;
-          font-size: 13px;
-          font-weight: 500;
-        }
-        .fee-vivid {
-          background: #dbeafe;
-          color: #1d4ed8;
-        }
-        .fee-stubhub {
-          background: #f3e8ff;
-          color: #7c3aed;
-        }
-        .fee-note {
+          padding: 16px;
+          background: #f9fafb;
+          border-radius: 8px;
+          font-size: 14px;
           color: #666;
-          font-size: 13px;
-          margin-left: auto;
+        }
+        .info-section p {
+          margin: 4px 0;
         }
       `}</style>
     </Layout>
