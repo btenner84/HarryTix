@@ -14,12 +14,14 @@ router = APIRouter(prefix="/history", tags=["history"])
 PRICE_HISTORY: list[dict] = []
 
 # Your inventory (same as comparison.py)
+VIVID_FEE = 0.10
+
 INVENTORY = [
-    {"set_name": "Set A", "section_filter": "SECTION 2", "row_filter": "1", "vivid_event_id": "6564568"},
-    {"set_name": "Set B", "section_filter": "LEFT", "row_filter": None, "vivid_event_id": "6564614"},
-    {"set_name": "Set C", "section_filter": "112", "row_filter": None, "vivid_event_id": "6564610"},
-    {"set_name": "Set D", "section_filter": "LEFT", "row_filter": None, "vivid_event_id": "6564676"},
-    {"set_name": "Set E", "section_filter": "SECTION 1", "row_filter": None, "vivid_event_id": "6564623"},
+    {"set_name": "Set A", "section_filter": "SECTION 2", "row_filter": "1", "vivid_event_id": "6564568", "quantity": 4, "cost_per_ticket": 471.25},
+    {"set_name": "Set B", "section_filter": "LEFT", "row_filter": None, "vivid_event_id": "6564614", "quantity": 6, "cost_per_ticket": 490.67},
+    {"set_name": "Set C", "section_filter": "112", "row_filter": None, "vivid_event_id": "6564610", "quantity": 8, "cost_per_ticket": 324.88},
+    {"set_name": "Set D", "section_filter": "LEFT", "row_filter": None, "vivid_event_id": "6564676", "quantity": 5, "cost_per_ticket": 433.20},
+    {"set_name": "Set E", "section_filter": "SECTION 1", "row_filter": None, "vivid_event_id": "6564623", "quantity": 4, "cost_per_ticket": 368.00},
 ]
 
 
@@ -30,6 +32,11 @@ class PriceSnapshot(BaseModel):
     avg_lowest_2: Optional[float]
     listings_count: int
     total_seats: int
+    you_receive: Optional[float]  # After 10% fee
+    profit_per_ticket: Optional[float]
+    total_profit: Optional[float]
+    quantity: int
+    cost_per_ticket: float
 
 
 class HistoryResponse(BaseModel):
@@ -90,13 +97,28 @@ async def take_snapshot():
     for inv in INVENTORY:
         data = await fetch_vivid_price(inv["vivid_event_id"], inv["section_filter"], inv["row_filter"])
 
+        # Calculate profit
+        you_receive = None
+        profit_per_ticket = None
+        total_profit = None
+
+        if data["avg_lowest_2"]:
+            you_receive = round(data["avg_lowest_2"] * (1 - VIVID_FEE), 2)
+            profit_per_ticket = round(you_receive - inv["cost_per_ticket"], 2)
+            total_profit = round(profit_per_ticket * inv["quantity"], 2)
+
         snapshot = {
-            "timestamp": now.isoformat() + "Z",  # Add Z to indicate UTC for proper local time conversion
+            "timestamp": now.isoformat() + "Z",
             "set_name": inv["set_name"],
             "min_price": data["min_price"],
             "avg_lowest_2": data["avg_lowest_2"],
             "listings_count": data["listings_count"],
             "total_seats": data["total_seats"],
+            "you_receive": you_receive,
+            "profit_per_ticket": profit_per_ticket,
+            "total_profit": total_profit,
+            "quantity": inv["quantity"],
+            "cost_per_ticket": inv["cost_per_ticket"],
         }
         PRICE_HISTORY.append(snapshot)
         snapshots_taken.append(snapshot)
@@ -135,3 +157,31 @@ async def get_latest():
             latest[set_name] = snapshot
 
     return {"snapshots": list(latest.values())}
+
+
+@router.get("/profit-over-time")
+async def get_profit_over_time():
+    """Get total profit across all sets at each timestamp"""
+    # Group by timestamp
+    by_timestamp: dict = {}
+
+    for snapshot in PRICE_HISTORY:
+        ts = snapshot["timestamp"]
+        if ts not in by_timestamp:
+            by_timestamp[ts] = {
+                "timestamp": ts,
+                "total_profit": 0,
+                "sets": {},
+            }
+
+        profit = snapshot.get("total_profit") or 0
+        by_timestamp[ts]["total_profit"] += profit
+        by_timestamp[ts]["sets"][snapshot["set_name"]] = {
+            "profit": snapshot.get("total_profit"),
+            "price": snapshot.get("avg_lowest_2"),
+        }
+
+    # Sort by timestamp
+    result = sorted(by_timestamp.values(), key=lambda x: x["timestamp"])
+
+    return {"data": result}
