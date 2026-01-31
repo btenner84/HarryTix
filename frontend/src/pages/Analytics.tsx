@@ -77,7 +77,6 @@ export function Analytics() {
   const { data: comparison, isLoading: comparisonLoading } = useComparison();
   const {
     data: history,
-    isLoading: historyLoading,
     refetch: refetchHistory,
   } = useQuery({
     queryKey: ['history'],
