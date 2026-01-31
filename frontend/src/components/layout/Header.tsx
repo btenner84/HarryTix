@@ -18,6 +18,9 @@ export function Header() {
           <Link to="/analytics" className={location.pathname === '/analytics' ? 'active' : ''}>
             Analytics
           </Link>
+          <Link to="/sensitivity" className={location.pathname === '/sensitivity' ? 'active' : ''}>
+            Sensitivity
+          </Link>
         </nav>
       </div>
       <DataRefreshIndicator />
