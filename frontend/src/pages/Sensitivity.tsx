@@ -12,15 +12,13 @@ function formatCurrency(value: number | null | undefined): string {
 
 export function Sensitivity() {
   const { data, isLoading } = useComparison();
-
-  // Store selling prices for each set (keyed by set_name)
   const [sellingPrices, setSellingPrices] = useState<Record<string, string>>({});
 
   const handlePriceChange = (setName: string, value: string) => {
     setSellingPrices(prev => ({ ...prev, [setName]: value }));
   };
 
-  const getSellingPrice = (setName: string): number | null => {
+  const getPrice = (setName: string): number | null => {
     const val = sellingPrices[setName];
     if (!val || val === '') return null;
     const num = parseFloat(val);
@@ -28,80 +26,38 @@ export function Sensitivity() {
   };
 
   // Calculate totals
-  const calculateTotals = () => {
-    if (!data) return null;
+  let totalVividProfit = 0;
+  let totalStubHubProfit = 0;
+  let totalCost = 0;
 
-    let totalCost = 0;
-    let totalVividRevenue = 0;
-    let totalStubHubRevenue = 0;
-    let totalTickets = 0;
-
+  if (data) {
     data.sets.forEach(set => {
-      const price = getSellingPrice(set.set_name);
+      const price = getPrice(set.set_name);
       totalCost += set.cost_per_ticket * set.quantity;
-      totalTickets += set.quantity;
-
       if (price) {
-        totalVividRevenue += price * (1 - VIVID_FEE) * set.quantity;
-        totalStubHubRevenue += price * (1 - STUBHUB_FEE) * set.quantity;
+        const vividReceive = price * (1 - VIVID_FEE);
+        const stubhubReceive = price * (1 - STUBHUB_FEE);
+        totalVividProfit += (vividReceive - set.cost_per_ticket) * set.quantity;
+        totalStubHubProfit += (stubhubReceive - set.cost_per_ticket) * set.quantity;
       }
     });
-
-    return {
-      totalCost,
-      totalTickets,
-      totalVividRevenue,
-      totalStubHubRevenue,
-      totalVividProfit: totalVividRevenue - totalCost,
-      totalStubHubProfit: totalStubHubRevenue - totalCost,
-    };
-  };
-
-  const totals = calculateTotals();
+  }
 
   return (
     <Layout>
-      <div className="sensitivity-header">
+      <div className="page-header">
         <h1>Sensitivity Calculator</h1>
-        <p className="subtitle">Enter your target selling prices to calculate projected profits</p>
+        <p className="subtitle">Enter selling prices to calculate projected profit</p>
       </div>
 
       {isLoading ? (
         <div className="loading-container">
           <div className="loading-spinner"></div>
-          <p>Loading inventory...</p>
         </div>
       ) : data ? (
         <>
-          {/* Summary Cards */}
-          {totals && (
-            <div className="summary-grid">
-              <div className="summary-card">
-                <span className="summary-card-label">Total Tickets</span>
-                <span className="summary-card-value">{totals.totalTickets}</span>
-              </div>
-              <div className="summary-card">
-                <span className="summary-card-label">Total Cost</span>
-                <span className="summary-card-value">{formatCurrency(totals.totalCost)}</span>
-              </div>
-              <div className="summary-card summary-card-vivid">
-                <span className="summary-card-label">Vivid Profit (10% fee)</span>
-                <span className="summary-card-value" style={{ color: totals.totalVividProfit >= 0 ? '#059669' : '#dc2626' }}>
-                  {totals.totalVividProfit !== 0 ? formatCurrency(totals.totalVividProfit) : '-'}
-                </span>
-              </div>
-              <div className="summary-card summary-card-stubhub">
-                <span className="summary-card-label">StubHub Profit (15% fee)</span>
-                <span className="summary-card-value" style={{ color: totals.totalStubHubProfit >= 0 ? '#059669' : '#dc2626' }}>
-                  {totals.totalStubHubProfit !== 0 ? formatCurrency(totals.totalStubHubProfit) : '-'}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Input Table */}
           <div className="table-container">
-            <table className="sensitivity-table">
+            <table className="comparison-table">
               <thead>
                 <tr>
                   <th>Set</th>
@@ -118,13 +74,11 @@ export function Sensitivity() {
               </thead>
               <tbody>
                 {data.sets.map((set) => {
-                  const sellPrice = getSellingPrice(set.set_name);
-                  const vividReceive = sellPrice ? sellPrice * (1 - VIVID_FEE) : null;
-                  const stubhubReceive = sellPrice ? sellPrice * (1 - STUBHUB_FEE) : null;
-                  const vividProfitPer = vividReceive ? vividReceive - set.cost_per_ticket : null;
-                  const stubhubProfitPer = stubhubReceive ? stubhubReceive - set.cost_per_ticket : null;
-                  const vividTotalProfit = vividProfitPer ? vividProfitPer * set.quantity : null;
-                  const stubhubTotalProfit = stubhubProfitPer ? stubhubProfitPer * set.quantity : null;
+                  const price = getPrice(set.set_name);
+                  const vividReceive = price ? price * (1 - VIVID_FEE) : null;
+                  const stubhubReceive = price ? price * (1 - STUBHUB_FEE) : null;
+                  const vividProfit = vividReceive ? (vividReceive - set.cost_per_ticket) * set.quantity : null;
+                  const stubhubProfit = stubhubReceive ? (stubhubReceive - set.cost_per_ticket) * set.quantity : null;
 
                   return (
                     <tr key={set.set_name}>
@@ -145,81 +99,61 @@ export function Sensitivity() {
                           />
                         </div>
                       </td>
-                      <td className="col-vivid">{formatCurrency(vividReceive)}</td>
-                      <td className={`col-vivid ${vividProfitPer !== null ? (vividProfitPer >= 0 ? 'cell-positive' : 'cell-negative') : ''}`}>
-                        {vividTotalProfit !== null ? (
-                          <div>
-                            <div>{vividProfitPer! >= 0 ? '+' : ''}{formatCurrency(vividProfitPer)}/tix</div>
-                            <div className="profit-total">{vividTotalProfit >= 0 ? '+' : ''}{formatCurrency(vividTotalProfit)} total</div>
-                          </div>
-                        ) : '-'}
+                      <td className="col-vivid cell-highlight">{formatCurrency(vividReceive)}</td>
+                      <td className={`col-vivid ${vividProfit !== null ? (vividProfit >= 0 ? 'cell-positive' : 'cell-negative') : ''}`}>
+                        {vividProfit !== null ? `${vividProfit >= 0 ? '+' : ''}${formatCurrency(vividProfit)}` : '-'}
                       </td>
-                      <td className="col-stubhub">{formatCurrency(stubhubReceive)}</td>
-                      <td className={`col-stubhub ${stubhubProfitPer !== null ? (stubhubProfitPer >= 0 ? 'cell-positive' : 'cell-negative') : ''}`}>
-                        {stubhubTotalProfit !== null ? (
-                          <div>
-                            <div>{stubhubProfitPer! >= 0 ? '+' : ''}{formatCurrency(stubhubProfitPer)}/tix</div>
-                            <div className="profit-total">{stubhubTotalProfit >= 0 ? '+' : ''}{formatCurrency(stubhubTotalProfit)} total</div>
-                          </div>
-                        ) : '-'}
+                      <td className="col-stubhub cell-highlight">{formatCurrency(stubhubReceive)}</td>
+                      <td className={`col-stubhub ${stubhubProfit !== null ? (stubhubProfit >= 0 ? 'cell-positive' : 'cell-negative') : ''}`}>
+                        {stubhubProfit !== null ? `${stubhubProfit >= 0 ? '+' : ''}${formatCurrency(stubhubProfit)}` : '-'}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
+              <tfoot>
+                <tr className="totals-row">
+                  <td colSpan={5}></td>
+                  <td className="totals-label">TOTAL</td>
+                  <td className="col-vivid"></td>
+                  <td className={`col-vivid totals-value ${totalVividProfit >= 0 ? 'cell-positive' : 'cell-negative'}`}>
+                    {totalVividProfit !== 0 ? `${totalVividProfit >= 0 ? '+' : ''}${formatCurrency(totalVividProfit)}` : '-'}
+                  </td>
+                  <td className="col-stubhub"></td>
+                  <td className={`col-stubhub totals-value ${totalStubHubProfit >= 0 ? 'cell-positive' : 'cell-negative'}`}>
+                    {totalStubHubProfit !== 0 ? `${totalStubHubProfit >= 0 ? '+' : ''}${formatCurrency(totalStubHubProfit)}` : '-'}
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
 
-          {/* Breakeven Info */}
-          <div className="breakeven-section">
-            <h3>Breakeven Prices (to cover your cost)</h3>
-            <div className="breakeven-grid">
-              {data.sets.map((set) => {
-                const vividBreakeven = set.cost_per_ticket / (1 - VIVID_FEE);
-                const stubhubBreakeven = set.cost_per_ticket / (1 - STUBHUB_FEE);
-                return (
-                  <div key={set.set_name} className="breakeven-card">
-                    <div className="breakeven-set">{set.set_name} - {set.section}</div>
-                    <div className="breakeven-prices">
-                      <span className="breakeven-vivid">Vivid: {formatCurrency(vividBreakeven)}</span>
-                      <span className="breakeven-stubhub">StubHub: {formatCurrency(stubhubBreakeven)}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          <div className="fee-info">
+            <span className="fee-badge fee-vivid">Vivid: 10% seller fee</span>
+            <span className="fee-badge fee-stubhub">StubHub: 15% seller fee</span>
+            <span className="fee-note">Total Cost: {formatCurrency(totalCost)}</span>
           </div>
         </>
-      ) : (
-        <div className="empty-state">
-          <p>No data available.</p>
-        </div>
-      )}
+      ) : null}
 
       <style>{`
-        .sensitivity-header {
-          margin-bottom: 32px;
+        .page-header {
+          margin-bottom: 24px;
         }
-
-        .sensitivity-header h1 {
+        .page-header h1 {
           margin: 0;
           font-size: 28px;
           font-weight: 700;
         }
-
         .subtitle {
           color: #666;
           margin: 4px 0 0;
         }
-
         .loading-container {
           display: flex;
-          flex-direction: column;
-          align-items: center;
           justify-content: center;
-          padding: 80px 20px;
+          padding: 80px;
         }
-
         .loading-spinner {
           width: 48px;
           height: 48px;
@@ -228,129 +162,73 @@ export function Sensitivity() {
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
-
         @keyframes spin {
           to { transform: rotate(360deg); }
         }
-
-        .summary-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 16px;
-          margin-bottom: 24px;
-        }
-
-        @media (max-width: 900px) {
-          .summary-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-
-        .summary-card {
-          background: white;
-          border-radius: 12px;
-          padding: 20px;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .summary-card-label {
-          display: block;
-          font-size: 13px;
-          color: #666;
-          margin-bottom: 8px;
-        }
-
-        .summary-card-value {
-          display: block;
-          font-size: 24px;
-          font-weight: 700;
-        }
-
-        .summary-card-vivid {
-          background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-          border-left: 4px solid #2563eb;
-        }
-
-        .summary-card-stubhub {
-          background: linear-gradient(135deg, #fdf4ff 0%, #f3e8ff 100%);
-          border-left: 4px solid #9333ea;
-        }
-
         .table-container {
           overflow-x: auto;
           background: white;
           border-radius: 12px;
           box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-
-        .sensitivity-table {
+        .comparison-table {
           width: 100%;
           border-collapse: collapse;
           font-size: 14px;
         }
-
-        .sensitivity-table th,
-        .sensitivity-table td {
+        .comparison-table th,
+        .comparison-table td {
           padding: 12px 16px;
           text-align: left;
           border-bottom: 1px solid #e5e7eb;
           white-space: nowrap;
         }
-
-        .sensitivity-table th {
+        .comparison-table th {
           background: #f9fafb;
           font-weight: 600;
           color: #374151;
         }
-
-        .sensitivity-table tbody tr:hover {
+        .comparison-table tbody tr:hover {
           background: #f9fafb;
         }
-
         .col-vivid {
           background: #eff6ff !important;
         }
-
         .col-stubhub {
           background: #fdf4ff !important;
         }
-
         .cell-set {
           font-weight: 600;
         }
-
         .cell-section {
           font-weight: 500;
         }
-
         .cell-center {
           text-align: center;
         }
-
+        .cell-highlight {
+          font-weight: 600;
+        }
         .cell-positive {
           color: #059669;
           font-weight: 600;
         }
-
         .cell-negative {
           color: #dc2626;
           font-weight: 600;
         }
-
         .price-input-wrapper {
           display: flex;
           align-items: center;
           background: #f3f4f6;
           border-radius: 6px;
           padding: 0 8px;
-          width: 100px;
+          width: 90px;
         }
-
         .price-prefix {
           color: #666;
           font-weight: 500;
         }
-
         .price-input {
           border: none;
           background: transparent;
@@ -359,69 +237,51 @@ export function Sensitivity() {
           font-size: 14px;
           font-weight: 600;
         }
-
         .price-input:focus {
           outline: none;
         }
-
         .price-input::placeholder {
           color: #aaa;
         }
-
-        .profit-total {
-          font-size: 12px;
-          opacity: 0.8;
-          margin-top: 2px;
-        }
-
-        .breakeven-section {
-          margin-top: 32px;
-          padding: 20px;
+        .totals-row {
           background: #f9fafb;
-          border-radius: 12px;
+          border-top: 2px solid #e5e7eb;
         }
-
-        .breakeven-section h3 {
-          margin: 0 0 16px;
+        .totals-row td {
+          border-bottom: none;
+        }
+        .totals-label {
+          font-weight: 700;
+          text-align: right;
+        }
+        .totals-value {
           font-size: 16px;
+          font-weight: 700;
         }
-
-        .breakeven-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-          gap: 12px;
-        }
-
-        .breakeven-card {
-          background: white;
-          padding: 12px 16px;
-          border-radius: 8px;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-
-        .breakeven-set {
-          font-weight: 600;
-          margin-bottom: 8px;
-        }
-
-        .breakeven-prices {
+        .fee-info {
           display: flex;
           gap: 16px;
-          font-size: 13px;
+          margin-top: 16px;
+          align-items: center;
         }
-
-        .breakeven-vivid {
+        .fee-badge {
+          padding: 6px 12px;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 500;
+        }
+        .fee-vivid {
+          background: #dbeafe;
           color: #1d4ed8;
         }
-
-        .breakeven-stubhub {
+        .fee-stubhub {
+          background: #f3e8ff;
           color: #7c3aed;
         }
-
-        .empty-state {
-          text-align: center;
-          padding: 60px 20px;
+        .fee-note {
           color: #666;
+          font-size: 13px;
+          margin-left: auto;
         }
       `}</style>
     </Layout>
