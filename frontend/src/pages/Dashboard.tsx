@@ -1,5 +1,5 @@
 import { Layout } from '../components/layout/Layout';
-import { useComparison, TicketSet } from '../hooks/useComparison';
+import { useComparison, TicketSet, VividMarketData } from '../hooks/useComparison';
 
 function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) return '-';
@@ -33,6 +33,26 @@ function BestPlatformBadge({ platform, vividReceive, stubhubReceive }: {
   );
 }
 
+function MarketDataCell({ market }: { market: VividMarketData | null }) {
+  if (!market || market.listings_count === 0) {
+    return <td className="cell-market">-</td>;
+  }
+
+  return (
+    <td className="cell-market">
+      <div className="market-info">
+        <span className="market-count">{market.listings_count} listings</span>
+        <span className="market-seats">{market.total_seats} seats</span>
+        {market.min_price && market.max_price && (
+          <span className="market-range">
+            ${market.min_price.toLocaleString()}-${market.max_price.toLocaleString()}
+          </span>
+        )}
+      </div>
+    </td>
+  );
+}
+
 function ComparisonTable({ sets }: { sets: TicketSet[] }) {
   return (
     <div className="table-container">
@@ -51,6 +71,7 @@ function ComparisonTable({ sets }: { sets: TicketSet[] }) {
             <th>Avg You Get</th>
             <th>Profit/Tix</th>
             <th>Best</th>
+            <th>Market (Vivid)</th>
           </tr>
         </thead>
         <tbody>
@@ -74,6 +95,7 @@ function ComparisonTable({ sets }: { sets: TicketSet[] }) {
                   stubhubReceive={set.stubhub_you_receive}
                 />
               </td>
+              <MarketDataCell market={set.vivid_market} />
             </tr>
           ))}
         </tbody>
@@ -516,6 +538,30 @@ export function Dashboard() {
           text-align: center;
           padding: 60px 20px;
           color: #666;
+        }
+
+        .cell-market {
+          font-size: 12px;
+        }
+
+        .market-info {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .market-count {
+          font-weight: 600;
+          color: #2563eb;
+        }
+
+        .market-seats {
+          color: #666;
+        }
+
+        .market-range {
+          color: #888;
+          font-size: 11px;
         }
       `}</style>
     </Layout>

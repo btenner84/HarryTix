@@ -1,6 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 
+export interface VividMarketData {
+  listings_count: number;
+  total_seats: number;
+  min_price: number | null;
+  max_price: number | null;
+  avg_price: number | null;
+}
+
 export interface TicketSet {
   set_name: string;
   date: string;
@@ -19,6 +27,7 @@ export interface TicketSet {
   total_profit: number | null;
   best_platform: string | null;
   comparable_count: number;
+  vivid_market: VividMarketData | null;
 }
 
 export interface ComparisonSummary {

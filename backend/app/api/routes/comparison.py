@@ -10,6 +10,15 @@ import httpx
 router = APIRouter(prefix="/comparison", tags=["comparison"])
 
 
+class VividMarketData(BaseModel):
+    """Detailed market data from Vivid Seats"""
+    listings_count: int = 0
+    total_seats: int = 0
+    min_price: Optional[float] = None
+    max_price: Optional[float] = None
+    avg_price: Optional[float] = None
+
+
 class TicketSet(BaseModel):
     set_name: str
     date: str
@@ -28,6 +37,8 @@ class TicketSet(BaseModel):
     total_profit: Optional[float] = None
     best_platform: Optional[str] = None
     comparable_count: int = 0
+    # New detailed market data
+    vivid_market: Optional[VividMarketData] = None
 
 
 class ComparisonResponse(BaseModel):
@@ -112,8 +123,10 @@ VIVID_FEE = 0.10
 STUBHUB_FEE = 0.15
 
 
-async def get_vivid_min_price(event_id: str, section_filter: str, row_filter: Optional[str]) -> tuple[Optional[float], int]:
-    """Fetch minimum price from Vivid Seats API for matching section/row."""
+async def get_vivid_market_data(event_id: str, section_filter: str, row_filter: Optional[str]) -> VividMarketData:
+    """Fetch detailed market data from Vivid Seats API for matching section/row."""
+    market = VividMarketData()
+
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.get(
@@ -122,11 +135,14 @@ async def get_vivid_min_price(event_id: str, section_filter: str, row_filter: Op
             data = resp.json()
             tickets = data.get("tickets", [])
 
-            matches = []
+            prices = []
+            total_seats = 0
+
             for t in tickets:
                 section = str(t.get("s", "")).upper()
                 row = str(t.get("r", "")).upper()
                 price = float(t.get("aip", 0))
+                qty = int(t.get("q", 1))
 
                 if price < 100:
                     continue
@@ -137,14 +153,20 @@ async def get_vivid_min_price(event_id: str, section_filter: str, row_filter: Op
                 if row_filter and row != row_filter.upper():
                     continue
 
-                matches.append(price)
+                prices.append(price)
+                total_seats += qty
 
-            if matches:
-                return min(matches), len(matches)
+            if prices:
+                market.listings_count = len(prices)
+                market.total_seats = total_seats
+                market.min_price = min(prices)
+                market.max_price = max(prices)
+                market.avg_price = round(sum(prices) / len(prices), 2)
+
     except Exception as e:
         print(f"Vivid API error: {e}")
 
-    return None, 0
+    return market
 
 
 @router.get("", response_model=ComparisonResponse)
@@ -158,12 +180,16 @@ async def get_comparison():
     total_tickets = 0
 
     for inv in INVENTORY:
-        # Get live Vivid price
-        vivid_price, count = await get_vivid_min_price(
+        # Get live Vivid market data
+        vivid_market = await get_vivid_market_data(
             inv["vivid_event_id"],
             inv["section_filter"],
             inv["row_filter"]
         )
+
+        # Use min price for comparison (what buyer pays)
+        vivid_price = vivid_market.min_price
+        count = vivid_market.listings_count
 
         # Get StubHub price (from verified map data)
         stubhub_price = STUBHUB_PRICES.get(inv["stubhub_event_id"])
@@ -211,6 +237,7 @@ async def get_comparison():
             total_profit=total_profit,
             best_platform=best,
             comparable_count=count,
+            vivid_market=vivid_market,
         )
         sets.append(ticket_set)
 
