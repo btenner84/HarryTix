@@ -17,6 +17,7 @@ class VividMarketData(BaseModel):
     min_price: Optional[float] = None
     max_price: Optional[float] = None
     avg_price: Optional[float] = None
+    avg_lowest_2: Optional[float] = None  # Average of 2 lowest prices
 
 
 class TicketSet(BaseModel):
@@ -162,6 +163,12 @@ async def get_vivid_market_data(event_id: str, section_filter: str, row_filter: 
                 market.min_price = min(prices)
                 market.max_price = max(prices)
                 market.avg_price = round(sum(prices) / len(prices), 2)
+                # Average of lowest 2 prices (more realistic selling price)
+                sorted_prices = sorted(prices)
+                if len(sorted_prices) >= 2:
+                    market.avg_lowest_2 = round((sorted_prices[0] + sorted_prices[1]) / 2, 2)
+                else:
+                    market.avg_lowest_2 = sorted_prices[0] if sorted_prices else None
 
     except Exception as e:
         print(f"Vivid API error: {e}")
@@ -187,8 +194,8 @@ async def get_comparison():
             inv["row_filter"]
         )
 
-        # Use min price for comparison (what buyer pays)
-        vivid_price = vivid_market.min_price
+        # Use average of lowest 2 prices for comparison (more realistic)
+        vivid_price = vivid_market.avg_lowest_2 or vivid_market.min_price
         count = vivid_market.listings_count
 
         # Get StubHub price (from verified map data)

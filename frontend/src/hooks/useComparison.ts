@@ -7,6 +7,7 @@ export interface VividMarketData {
   min_price: number | null;
   max_price: number | null;
   avg_price: number | null;
+  avg_lowest_2: number | null;  // Average of 2 lowest prices
 }
 
 export interface TicketSet {
