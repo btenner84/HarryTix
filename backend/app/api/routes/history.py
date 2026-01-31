@@ -91,7 +91,7 @@ async def take_snapshot():
         data = await fetch_vivid_price(inv["vivid_event_id"], inv["section_filter"], inv["row_filter"])
 
         snapshot = {
-            "timestamp": now.isoformat(),
+            "timestamp": now.isoformat() + "Z",  # Add Z to indicate UTC for proper local time conversion
             "set_name": inv["set_name"],
             "min_price": data["min_price"],
             "avg_lowest_2": data["avg_lowest_2"],
