@@ -136,9 +136,6 @@ export function Analytics() {
     'Set E': '#dc2626',
   };
 
-  // Calculate current total profit
-  const currentTotalProfit = comparison?.summary.total_vivid_profit || 0;
-
   return (
     <Layout>
       <div className="page-header">
@@ -150,19 +147,6 @@ export function Analytics() {
           Take Snapshot Now
         </button>
       </div>
-
-      {/* Current Total Profit - Big Display */}
-      {!comparisonLoading && comparison && (
-        <div className="profit-hero">
-          <div className="profit-hero-label">Current Total Profit</div>
-          <div className={`profit-hero-value ${currentTotalProfit >= 0 ? 'positive' : 'negative'}`}>
-            {currentTotalProfit >= 0 ? '+' : ''}{formatCurrency(currentTotalProfit)}
-          </div>
-          <div className="profit-hero-sub">
-            {comparison.summary.total_tickets} tickets | Cost: {formatCurrency(comparison.summary.total_cost)}
-          </div>
-        </div>
-      )}
 
       {/* Total Profit Over Time Chart */}
       <div className="chart-section">
@@ -358,38 +342,6 @@ export function Analytics() {
         }
         .snapshot-btn:hover {
           background: #1d4ed8;
-        }
-
-        .profit-hero {
-          background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-          border-radius: 16px;
-          padding: 32px;
-          text-align: center;
-          margin-bottom: 32px;
-          border: 2px solid #059669;
-        }
-        .profit-hero-label {
-          font-size: 14px;
-          color: #059669;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          margin-bottom: 8px;
-        }
-        .profit-hero-value {
-          font-size: 48px;
-          font-weight: 800;
-        }
-        .profit-hero-value.positive {
-          color: #059669;
-        }
-        .profit-hero-value.negative {
-          color: #dc2626;
-        }
-        .profit-hero-sub {
-          font-size: 14px;
-          color: #666;
-          margin-top: 8px;
         }
 
         .chart-section {
