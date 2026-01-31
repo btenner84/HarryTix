@@ -72,6 +72,7 @@ function ComparisonTable({ sets }: { sets: TicketSet[] }) {
             <th>Profit/Tix</th>
             <th>Best</th>
             <th>Market (Vivid)</th>
+            <th>Market (StubHub)</th>
           </tr>
         </thead>
         <tbody>
@@ -96,6 +97,7 @@ function ComparisonTable({ sets }: { sets: TicketSet[] }) {
                 />
               </td>
               <MarketDataCell market={set.vivid_market} />
+              <MarketDataCell market={set.stubhub_market} />
             </tr>
           ))}
         </tbody>
@@ -195,7 +197,7 @@ export function Dashboard() {
             <h3>Data Sources</h3>
             <ul>
               <li><strong>Vivid Seats:</strong> Live API - filtered to your exact sections</li>
-              <li><strong>StubHub:</strong> Verified from venue map screenshots</li>
+              <li><strong>StubHub:</strong> Live scraping - filtered to your sections (2+ tickets)</li>
             </ul>
           </div>
         </>

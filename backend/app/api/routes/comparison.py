@@ -7,17 +7,23 @@ from pydantic import BaseModel
 from typing import Optional
 import httpx
 
+from app.services.stubhub_scraper import get_stubhub_prices
+
 router = APIRouter(prefix="/comparison", tags=["comparison"])
 
 
-class VividMarketData(BaseModel):
-    """Detailed market data from Vivid Seats"""
+class MarketData(BaseModel):
+    """Detailed market data from a platform"""
     listings_count: int = 0
     total_seats: int = 0
     min_price: Optional[float] = None
     max_price: Optional[float] = None
     avg_price: Optional[float] = None
     avg_lowest_2: Optional[float] = None  # Average of 2 lowest prices
+
+
+# Alias for backwards compatibility
+VividMarketData = MarketData
 
 
 class TicketSet(BaseModel):
@@ -40,6 +46,7 @@ class TicketSet(BaseModel):
     comparable_count: int = 0
     # New detailed market data
     vivid_market: Optional[VividMarketData] = None
+    stubhub_market: Optional[MarketData] = None
 
 
 class ComparisonResponse(BaseModel):
@@ -111,14 +118,7 @@ INVENTORY = [
     },
 ]
 
-# Verified StubHub prices from map screenshots (all-in, buyer pays)
-STUBHUB_PRICES = {
-    "160334450": 700,   # Set A - 200s Row 1 estimate from map
-    "160334462": 1138,  # Set B - Left GA from map
-    "160334461": 620,   # Set C - Section 112 from map
-    "160334466": 750,   # Set D - Left GA from map
-    "160334464": 600,   # Set E - 100s from map
-}
+# StubHub prices are now fetched live via Playwright scraper
 
 VIVID_FEE = 0.10
 STUBHUB_FEE = 0.15
@@ -198,8 +198,24 @@ async def get_comparison():
         vivid_price = vivid_market.avg_lowest_2 or vivid_market.min_price
         count = vivid_market.listings_count
 
-        # Get StubHub price (from verified map data)
-        stubhub_price = STUBHUB_PRICES.get(inv["stubhub_event_id"])
+        # Get live StubHub prices via Playwright scraper
+        stubhub_data = await get_stubhub_prices(
+            inv["stubhub_event_id"],
+            inv["section_filter"],
+            min_qty=2  # Only listings with 2+ tickets
+        )
+
+        # Create StubHub market data object
+        stubhub_market = MarketData(
+            listings_count=stubhub_data.get("listings_count", 0),
+            total_seats=stubhub_data.get("total_seats", 0),
+            min_price=stubhub_data.get("min_price"),
+            max_price=stubhub_data.get("max_price"),
+            avg_lowest_2=stubhub_data.get("avg_lowest_2"),
+        )
+
+        # Use scraped price (avg of lowest 2) for comparison
+        stubhub_price = stubhub_market.avg_lowest_2 or stubhub_market.min_price
 
         # Calculate what you receive after fees
         vivid_receive = vivid_price * (1 - VIVID_FEE) if vivid_price else None
@@ -245,6 +261,7 @@ async def get_comparison():
             best_platform=best,
             comparable_count=count,
             vivid_market=vivid_market,
+            stubhub_market=stubhub_market,
         )
         sets.append(ticket_set)
 

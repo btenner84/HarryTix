@@ -29,6 +29,7 @@ export interface TicketSet {
   best_platform: string | null;
   comparable_count: number;
   vivid_market: VividMarketData | null;
+  stubhub_market: VividMarketData | null;
 }
 
 export interface ComparisonSummary {
