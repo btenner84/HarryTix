@@ -108,13 +108,15 @@ INVENTORY = [
         "set_name": "Set E",
         "date": "Sept 25",
         "event_date": "2026-09-25",
-        "section": "100s (solos)",
+        "section": "100s Row<10 (solos)",
         "quantity": 4,
         "cost_per_ticket": 368.00,
         "vivid_event_id": "6564623",
         "stubhub_event_id": "160334464",
         "section_filter": "SECTION 1",
         "row_filter": None,
+        "max_row": 10,  # Only rows under 10
+        "solo_only": True,  # Only single tickets
     },
 ]
 
@@ -124,7 +126,13 @@ VIVID_FEE = 0.10
 STUBHUB_FEE = 0.15
 
 
-async def get_vivid_market_data(event_id: str, section_filter: str, row_filter: Optional[str]) -> VividMarketData:
+async def get_vivid_market_data(
+    event_id: str,
+    section_filter: str,
+    row_filter: Optional[str],
+    max_row: Optional[int] = None,
+    solo_only: bool = False
+) -> VividMarketData:
     """Fetch detailed market data from Vivid Seats API for matching section/row."""
     market = VividMarketData()
 
@@ -152,6 +160,19 @@ async def get_vivid_market_data(event_id: str, section_filter: str, row_filter: 
                     continue
 
                 if row_filter and row != row_filter.upper():
+                    continue
+
+                # Filter by max row number
+                if max_row:
+                    try:
+                        row_num = int(row)
+                        if row_num >= max_row:
+                            continue
+                    except ValueError:
+                        continue  # Skip non-numeric rows
+
+                # Filter for solo tickets only
+                if solo_only and qty != 1:
                     continue
 
                 prices.append(price)
@@ -191,7 +212,9 @@ async def get_comparison():
         vivid_market = await get_vivid_market_data(
             inv["vivid_event_id"],
             inv["section_filter"],
-            inv["row_filter"]
+            inv["row_filter"],
+            inv.get("max_row"),
+            inv.get("solo_only", False)
         )
 
         # Use average of lowest 2 prices for comparison (more realistic)
