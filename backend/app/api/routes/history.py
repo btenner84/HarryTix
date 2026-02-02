@@ -21,7 +21,7 @@ INVENTORY = [
     {"set_name": "Set B", "section_filter": "LEFT", "row_filter": None, "vivid_event_id": "6564614", "quantity": 6, "cost_per_ticket": 490.67},
     {"set_name": "Set C", "section_filter": "112", "row_filter": None, "vivid_event_id": "6564610", "quantity": 8, "cost_per_ticket": 324.88},
     {"set_name": "Set D", "section_filter": "LEFT", "row_filter": None, "vivid_event_id": "6564676", "quantity": 5, "cost_per_ticket": 433.20},
-    {"set_name": "Set E", "section_filter": "SECTION 1", "row_filter": None, "vivid_event_id": "6564623", "quantity": 4, "cost_per_ticket": 368.00},
+    {"set_name": "Set E", "section_filter": "SECTION 1", "row_filter": None, "vivid_event_id": "6564623", "quantity": 4, "cost_per_ticket": 368.00, "max_row": 10, "solo_only": True},
 ]
 
 
@@ -44,7 +44,13 @@ class HistoryResponse(BaseModel):
     last_updated: Optional[datetime]
 
 
-async def fetch_vivid_price(event_id: str, section_filter: str, row_filter: Optional[str]) -> dict:
+async def fetch_vivid_price(
+    event_id: str,
+    section_filter: str,
+    row_filter: Optional[str],
+    max_row: Optional[int] = None,
+    solo_only: bool = False
+) -> dict:
     """Fetch current price from Vivid Seats API"""
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -68,6 +74,19 @@ async def fetch_vivid_price(event_id: str, section_filter: str, row_filter: Opti
                 if section_filter.upper() not in section:
                     continue
                 if row_filter and row != row_filter.upper():
+                    continue
+
+                # Filter by max row number
+                if max_row:
+                    try:
+                        row_num = int(row)
+                        if row_num >= max_row:
+                            continue
+                    except ValueError:
+                        continue  # Skip non-numeric rows
+
+                # Filter for solo tickets only
+                if solo_only and qty != 1:
                     continue
 
                 prices.append(price)
@@ -95,7 +114,13 @@ async def take_snapshot():
     snapshots_taken = []
 
     for inv in INVENTORY:
-        data = await fetch_vivid_price(inv["vivid_event_id"], inv["section_filter"], inv["row_filter"])
+        data = await fetch_vivid_price(
+            inv["vivid_event_id"],
+            inv["section_filter"],
+            inv["row_filter"],
+            inv.get("max_row"),
+            inv.get("solo_only", False)
+        )
 
         # Calculate profit
         you_receive = None
