@@ -144,7 +144,7 @@ export function Analytics() {
       <div className="page-header">
         <div>
           <h1>Analytics</h1>
-          <p className="subtitle">Price and profit tracking over time (updates every hour)</p>
+          <p className="subtitle">Price and profit tracking for your {comparison?.summary.total_tickets || ''} tickets (updates hourly)</p>
         </div>
         <button className="snapshot-btn" onClick={handleTakeSnapshot}>
           Take Snapshot Now

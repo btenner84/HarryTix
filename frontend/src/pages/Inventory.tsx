@@ -9,8 +9,8 @@ function formatCurrency(value: number | null | undefined): string {
 export function Inventory() {
   const { data, isLoading } = useComparison();
 
-  const totalTickets = data?.sets.reduce((sum, s) => sum + s.quantity, 0) || 0;
-  const totalCost = data?.sets.reduce((sum, s) => sum + s.total_cost, 0) || 0;
+  const totalTickets = data?.summary.total_tickets || 0;
+  const totalCost = data?.summary.total_cost || 0;
 
   return (
     <Layout>

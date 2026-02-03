@@ -24,14 +24,13 @@ export function Sensitivity() {
     return isNaN(num) ? null : num;
   };
 
-  // Calculate totals
+  // Calculate totals - use summary for cost, calculate profit from user inputs
   let totalProfit = 0;
-  let totalCost = 0;
+  const totalCost = data?.summary.total_cost || 0;
 
   if (data) {
     data.sets.forEach(set => {
       const price = getPrice(set.set_name);
-      totalCost += set.cost_per_ticket * set.quantity;
       if (price) {
         const receive = price * (1 - VIVID_FEE);
         totalProfit += (receive - set.cost_per_ticket) * set.quantity;
