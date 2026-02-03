@@ -122,14 +122,15 @@ INVENTORY = [
         "set_name": "Set F",
         "date": "Oct 17",
         "event_date": "2026-10-17",
-        "section": "Section 109 Row 4",
+        "section": "100s Row<10 (solo)",
         "quantity": 1,
         "cost_per_ticket": 368.00,
         "vivid_event_id": "6564691",
         "stubhub_event_id": "160334468",
-        "section_filter": "109",
+        "section_filter": "SECTION 1",  # All 100-level sections
         "row_filter": None,
-        "max_row": 10,  # Front rows similar to Row 4
+        "max_row": 10,  # Front rows like Row 4
+        "solo_only": True,  # Single tickets only
     },
     {
         "set_name": "Set G",
