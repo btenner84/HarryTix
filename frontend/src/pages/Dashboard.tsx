@@ -118,10 +118,16 @@ export function Dashboard() {
                       </td>
                       <td className="cell-market">
                         {set.vivid_market && set.vivid_market.listings_count > 0 ? (
-                          <div className="market-info">
+                          <a
+                            href={`https://www.vividseats.com/production/${set.vivid_event_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="market-link"
+                          >
                             <span className="market-count">{set.vivid_market.listings_count} listings</span>
                             <span className="market-seats">{set.vivid_market.total_seats} seats</span>
-                          </div>
+                            <span className="market-arrow">↗</span>
+                          </a>
                         ) : '-'}
                       </td>
                     </tr>
@@ -468,10 +474,18 @@ export function Dashboard() {
           font-size: 12px;
         }
 
-        .market-info {
+        .market-link {
           display: flex;
           flex-direction: column;
           gap: 2px;
+          text-decoration: none;
+          padding: 4px 8px;
+          border-radius: 6px;
+          transition: background 0.2s;
+        }
+
+        .market-link:hover {
+          background: #dbeafe;
         }
 
         .market-count {
@@ -481,6 +495,11 @@ export function Dashboard() {
 
         .market-seats {
           color: #666;
+        }
+
+        .market-arrow {
+          font-size: 10px;
+          color: #2563eb;
         }
 
         .totals-row {
