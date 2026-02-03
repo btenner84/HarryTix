@@ -16,7 +16,7 @@ export function Dashboard() {
       <div className="dashboard-header">
         <div>
           <h1>HarryTix Dashboard</h1>
-          <p className="subtitle">Live Vivid Seats prices for your 27 Harry Styles tickets</p>
+          <p className="subtitle">Live Vivid Seats prices for your {data?.summary.total_tickets || ''} Harry Styles tickets</p>
         </div>
         <div className="refresh-section">
           {lastUpdated && (

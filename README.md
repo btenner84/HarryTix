@@ -114,8 +114,11 @@ Repeat for each of your 5 events.
 | C | Fri Sept 18 | Sec 112 | 8 | $2,599 | $700-$1,200 |
 | D | Fri Oct 9 | GA/PIT | 5 | $2,166 | $800-$1,350 |
 | E | Fri Sept 25 | Lower 100s | 4 | $1,472 | $750-$1,300 |
+| F | Sat Oct 17 | Sec 109 Row 4 | 1 | $368 | $750-$1,300 |
+| G | Sat Oct 17 | GA Pit | 5 | $2,166 | $800-$1,350 |
+| H | Sat Oct 17 | Sec 114 Row 21 | 2 | $736 | $750-$1,300 |
 
-**Total: 27 tickets | $11,066 invested**
+**Total: 35 tickets | $14,336 invested**
 
 ## Deployment to Railway
 

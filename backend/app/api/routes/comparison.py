@@ -118,6 +118,42 @@ INVENTORY = [
         "max_row": 10,  # Only rows under 10
         "solo_only": True,  # Only single tickets
     },
+    {
+        "set_name": "Set F",
+        "date": "Oct 17",
+        "event_date": "2026-10-17",
+        "section": "Section 109 Row 4",
+        "quantity": 1,
+        "cost_per_ticket": 368.00,
+        "vivid_event_id": "6564691",
+        "stubhub_event_id": "160334468",
+        "section_filter": "109",
+        "row_filter": "4",
+    },
+    {
+        "set_name": "Set G",
+        "date": "Oct 17",
+        "event_date": "2026-10-17",
+        "section": "GA Pit",
+        "quantity": 5,
+        "cost_per_ticket": 433.20,
+        "vivid_event_id": "6564691",
+        "stubhub_event_id": "160334468",
+        "section_filter": "GA",
+        "row_filter": None,
+    },
+    {
+        "set_name": "Set H",
+        "date": "Oct 17",
+        "event_date": "2026-10-17",
+        "section": "Section 114 Row 21",
+        "quantity": 2,
+        "cost_per_ticket": 368.00,
+        "vivid_event_id": "6564691",
+        "stubhub_event_id": "160334468",
+        "section_filter": "114",
+        "row_filter": "21",
+    },
 ]
 
 # StubHub prices are now fetched live via Playwright scraper

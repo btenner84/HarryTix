@@ -134,6 +134,9 @@ export function Analytics() {
     'Set C': '#d97706',
     'Set D': '#7c3aed',
     'Set E': '#dc2626',
+    'Set F': '#0891b2',
+    'Set G': '#ea580c',
+    'Set H': '#4f46e5',
   };
 
   return (

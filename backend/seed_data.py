@@ -9,6 +9,7 @@ VIVID SEATS EVENT IDS (Verified):
 - Sept 19, 2026 (Sat): 6564614
 - Sept 25, 2026 (Fri): 6564623
 - Oct 9, 2026 (Fri): 6564676
+- Oct 17, 2026 (Sat): 6564691
 
 STUBHUB EVENT IDS:
 - Need to be found manually from your browser
@@ -64,6 +65,14 @@ EVENTS = [
         "date": datetime(2026, 10, 9, 20, 0),  # Fri Oct 9
         "vividseats_id": "6564676",
         "stubhub_id": "160334466",
+        "seatgeek_id": None,
+    },
+    {
+        "name": "Harry Styles - Love On Tour",
+        "venue": "Madison Square Garden",
+        "date": datetime(2026, 10, 17, 20, 0),  # Sat Oct 17
+        "vividseats_id": "6564691",
+        "stubhub_id": "160334468",  # StubHub disabled
         "seatgeek_id": None,
     },
 ]
@@ -166,6 +175,45 @@ async def seed_database():
                 target_sell_max=Decimal("1300.00"),
                 notes="Set E - 4 solo tickets",
             ),
+            # Set F: Sat Oct 17 - Section 109 Row 4 Seat 7 - 1 ticket - $368 total
+            Inventory(
+                event_id=events[5].id,  # Oct 17
+                section="Section 109",
+                row="4",
+                seat_numbers="7",
+                quantity=1,
+                cost_per_ticket=Decimal("368.00"),
+                total_cost=Decimal("368.00"),
+                target_sell_min=Decimal("750.00"),
+                target_sell_max=Decimal("1300.00"),
+                notes="Set F - single ticket",
+            ),
+            # Set G: Sat Oct 17 - GA Pit - 5 tickets - $2,166 total
+            Inventory(
+                event_id=events[5].id,  # Oct 17
+                section="GA Pit",
+                row="GA",
+                seat_numbers=None,
+                quantity=5,
+                cost_per_ticket=Decimal("433.20"),
+                total_cost=Decimal("2166.00"),
+                target_sell_min=Decimal("800.00"),
+                target_sell_max=Decimal("1350.00"),
+                notes="Set G - GA Pit",
+            ),
+            # Set H: Sat Oct 17 - Section 114 Row 21 Seats 21-22 - 2 tickets - $736 total
+            Inventory(
+                event_id=events[5].id,  # Oct 17
+                section="Section 114",
+                row="21",
+                seat_numbers="21-22",
+                quantity=2,
+                cost_per_ticket=Decimal("368.00"),
+                total_cost=Decimal("736.00"),
+                target_sell_min=Decimal("750.00"),
+                target_sell_max=Decimal("1300.00"),
+                notes="Set H - pair",
+            ),
         ]
 
         for item in inventory_items:
@@ -175,14 +223,17 @@ async def seed_database():
 
         print("Database seeded successfully!")
         print(f"Created {len(events)} events")
-        print(f"Created {len(inventory_items)} inventory items (27 total tickets)")
+        print(f"Created {len(inventory_items)} inventory items (35 total tickets)")
         print("\n=== YOUR INVENTORY ===")
         print("Set A: 4 tickets - Section 200s Row 1 - Sept 2")
         print("Set B: 6 tickets - GA/PIT - Sept 19 (Sat)")
         print("Set C: 8 tickets - Section 112 - Sept 18 (Fri)")
         print("Set D: 5 tickets - GA/PIT - Oct 9 (Fri)")
         print("Set E: 4 tickets - Lower 100s - Sept 25 (Fri)")
-        print("\nTotal: 27 tickets | Total Cost: $11,066")
+        print("Set F: 1 ticket - Section 109 Row 4 - Oct 17 (Sat)")
+        print("Set G: 5 tickets - GA Pit - Oct 17 (Sat)")
+        print("Set H: 2 tickets - Section 114 Row 21 - Oct 17 (Sat)")
+        print("\nTotal: 35 tickets | Total Cost: $14,336")
 
 
 if __name__ == "__main__":

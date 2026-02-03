@@ -73,6 +73,13 @@ async def init_database():
                 "vividseats_id": "6564676",
                 "stubhub_id": "160334466",
             },
+            {
+                "name": "Harry Styles - Love On Tour",
+                "venue": "Madison Square Garden",
+                "date": datetime(2026, 10, 17, 20, 0),
+                "vividseats_id": "6564691",
+                "stubhub_id": "160334468",
+            },
         ]
 
         events = []
@@ -141,6 +148,36 @@ async def init_database():
                 "cost_per_ticket": Decimal("368.00"),
                 "notes": "Set E - 4 solo tickets",
             },
+            # Set F: Oct 17 - Section 109 Row 4 - 1 ticket
+            {
+                "event_idx": 5,
+                "section": "Section 109",
+                "row": "4",
+                "seat_numbers": "7",
+                "quantity": 1,
+                "cost_per_ticket": Decimal("368.00"),
+                "notes": "Set F - single ticket",
+            },
+            # Set G: Oct 17 - GA Pit - 5 tickets
+            {
+                "event_idx": 5,
+                "section": "GA Pit",
+                "row": "GA",
+                "seat_numbers": None,
+                "quantity": 5,
+                "cost_per_ticket": Decimal("433.20"),
+                "notes": "Set G - GA Pit",
+            },
+            # Set H: Oct 17 - Section 114 Row 21 - 2 tickets
+            {
+                "event_idx": 5,
+                "section": "Section 114",
+                "row": "21",
+                "seat_numbers": "21-22",
+                "quantity": 2,
+                "cost_per_ticket": Decimal("368.00"),
+                "notes": "Set H - pair",
+            },
         ]
 
         for inv in inventory_data:
@@ -159,7 +196,7 @@ async def init_database():
         await session.commit()
         print("Database seeded successfully!")
         print(f"  - {len(events)} events")
-        print(f"  - {len(inventory_data)} inventory items (27 tickets)")
+        print(f"  - {len(inventory_data)} inventory items (35 tickets)")
 
 
 if __name__ == "__main__":
