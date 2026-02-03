@@ -128,7 +128,8 @@ INVENTORY = [
         "vivid_event_id": "6564691",
         "stubhub_event_id": "160334468",
         "section_filter": "109",
-        "row_filter": "4",
+        "row_filter": None,
+        "max_row": 10,  # Front rows similar to Row 4
     },
     {
         "set_name": "Set G",
@@ -152,7 +153,7 @@ INVENTORY = [
         "vivid_event_id": "6564691",
         "stubhub_event_id": "160334468",
         "section_filter": "114",
-        "row_filter": "21",
+        "row_filter": None,  # Compare to all Section 114 rows
     },
 ]
 

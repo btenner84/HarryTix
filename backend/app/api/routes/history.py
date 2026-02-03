@@ -22,9 +22,9 @@ INVENTORY = [
     {"set_name": "Set C", "section_filter": "112", "row_filter": None, "vivid_event_id": "6564610", "quantity": 8, "cost_per_ticket": 324.88},
     {"set_name": "Set D", "section_filter": "LEFT", "row_filter": None, "vivid_event_id": "6564676", "quantity": 5, "cost_per_ticket": 433.20},
     {"set_name": "Set E", "section_filter": "SECTION 1", "row_filter": None, "vivid_event_id": "6564623", "quantity": 4, "cost_per_ticket": 368.00, "max_row": 10, "solo_only": True},
-    {"set_name": "Set F", "section_filter": "109", "row_filter": "4", "vivid_event_id": "6564691", "quantity": 1, "cost_per_ticket": 368.00},
+    {"set_name": "Set F", "section_filter": "109", "row_filter": None, "vivid_event_id": "6564691", "quantity": 1, "cost_per_ticket": 368.00, "max_row": 10},
     {"set_name": "Set G", "section_filter": "GA", "row_filter": None, "vivid_event_id": "6564691", "quantity": 5, "cost_per_ticket": 433.20},
-    {"set_name": "Set H", "section_filter": "114", "row_filter": "21", "vivid_event_id": "6564691", "quantity": 2, "cost_per_ticket": 368.00},
+    {"set_name": "Set H", "section_filter": "114", "row_filter": None, "vivid_event_id": "6564691", "quantity": 2, "cost_per_ticket": 368.00},
 ]
 
 
