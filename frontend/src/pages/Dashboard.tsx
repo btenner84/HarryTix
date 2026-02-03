@@ -143,6 +143,105 @@ export function Dashboard() {
             </table>
           </div>
 
+          {/* Grouped by Product Type */}
+          <h2 className="section-title">By Product Type</h2>
+          {(() => {
+            // Group sets by product type
+            const groups: Record<string, typeof data.sets> = {
+              'GA / Pit': [],
+              'Lower Bowl (100s)': [],
+              'Upper Bowl (200s)': [],
+            };
+
+            // Date sort helper
+            const dateOrder: Record<string, number> = {
+              'Aug 28': 1, 'Sept 2': 2, 'Sept 18': 3, 'Sept 19': 4, 'Sept 25': 5,
+              'Oct 9': 6, 'Oct 17': 7, 'Oct 31': 8
+            };
+
+            data.sets.forEach(set => {
+              const section = set.section.toUpperCase();
+              if (section.includes('GA') || section.includes('PIT')) {
+                groups['GA / Pit'].push(set);
+              } else if (section.includes('200') || section.includes('SECTION 2')) {
+                groups['Upper Bowl (200s)'].push(set);
+              } else {
+                groups['Lower Bowl (100s)'].push(set);
+              }
+            });
+
+            // Sort each group by date
+            Object.values(groups).forEach(group => {
+              group.sort((a, b) => (dateOrder[a.date] || 99) - (dateOrder[b.date] || 99));
+            });
+
+            return (
+              <div className="product-groups">
+                {Object.entries(groups).map(([groupName, sets]) => {
+                  if (sets.length === 0) return null;
+
+                  const groupQty = sets.reduce((sum, s) => sum + s.quantity, 0);
+                  const groupCost = sets.reduce((sum, s) => sum + s.cost_per_ticket * s.quantity, 0);
+                  const groupProfit = sets.reduce((sum, s) => {
+                    const profit = s.vivid_you_receive ? (s.vivid_you_receive - s.cost_per_ticket) * s.quantity : 0;
+                    return sum + profit;
+                  }, 0);
+
+                  return (
+                    <div key={groupName} className="product-group">
+                      <div className="group-header">
+                        <span className="group-name">{groupName}</span>
+                        <span className="group-stats">
+                          {groupQty} tickets · {formatCurrency(groupCost)} cost ·
+                          <span className={groupProfit >= 0 ? 'cell-positive' : 'cell-negative'}>
+                            {' '}{groupProfit >= 0 ? '+' : ''}{formatCurrency(groupProfit)} profit
+                          </span>
+                        </span>
+                      </div>
+                      <table className="group-table">
+                        <thead>
+                          <tr>
+                            <th>Set</th>
+                            <th>Date</th>
+                            <th>Section</th>
+                            <th>Qty</th>
+                            <th>Cost</th>
+                            <th>Price</th>
+                            <th>You Get</th>
+                            <th>Profit</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sets.map(set => {
+                            const profitPerTicket = set.vivid_you_receive
+                              ? set.vivid_you_receive - set.cost_per_ticket
+                              : null;
+                            const totalProfit = profitPerTicket ? profitPerTicket * set.quantity : null;
+
+                            return (
+                              <tr key={set.set_name}>
+                                <td className="cell-set">{set.set_name}</td>
+                                <td>{set.date}</td>
+                                <td>{set.section}</td>
+                                <td className="cell-center">{set.quantity}</td>
+                                <td>{formatCurrency(set.cost_per_ticket)}</td>
+                                <td className="cell-highlight">{formatCurrency(set.vivid_buyer_price)}</td>
+                                <td className="cell-highlight">{formatCurrency(set.vivid_you_receive)}</td>
+                                <td className={totalProfit !== null ? (totalProfit >= 0 ? 'cell-positive' : 'cell-negative') : ''}>
+                                  {totalProfit !== null ? `${totalProfit >= 0 ? '+' : ''}${formatCurrency(totalProfit)}` : '-'}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
           {/* Source Info */}
           <div className="source-info">
             <p><strong>Data Source:</strong> Vivid Seats Live API - filtered to your exact sections</p>
@@ -407,6 +506,67 @@ export function Dashboard() {
           text-align: center;
           padding: 60px 20px;
           color: #666;
+        }
+
+        .product-groups {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+
+        .product-group {
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          overflow: hidden;
+        }
+
+        .group-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 16px 20px;
+          background: #f9fafb;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .group-name {
+          font-weight: 700;
+          font-size: 16px;
+        }
+
+        .group-stats {
+          font-size: 13px;
+          color: #666;
+        }
+
+        .group-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 14px;
+        }
+
+        .group-table th,
+        .group-table td {
+          padding: 10px 16px;
+          text-align: left;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .group-table th {
+          background: #fafafa;
+          font-weight: 600;
+          color: #374151;
+          font-size: 12px;
+          text-transform: uppercase;
+        }
+
+        .group-table tbody tr:last-child td {
+          border-bottom: none;
+        }
+
+        .group-table tbody tr:hover {
+          background: #f9fafb;
         }
       `}</style>
     </Layout>
