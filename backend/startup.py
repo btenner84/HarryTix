@@ -42,7 +42,7 @@ async def init_database():
                 "name": "Harry Styles - Love On Tour",
                 "venue": "Madison Square Garden",
                 "date": datetime(2026, 8, 29, 20, 0),
-                "vividseats_id": "6564568",
+                "vividseats_id": "6564557",
                 "stubhub_id": "160334450",
             },
             {

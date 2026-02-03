@@ -17,7 +17,7 @@ PRICE_HISTORY: list[dict] = []
 VIVID_FEE = 0.10
 
 INVENTORY = [
-    {"set_name": "Set A", "section_filter": "SECTION 2", "row_filter": "1", "vivid_event_id": "6564568", "quantity": 4, "cost_per_ticket": 471.25},
+    {"set_name": "Set A", "section_filter": "SECTION 2", "row_filter": "1", "vivid_event_id": "6564557", "quantity": 4, "cost_per_ticket": 471.25},
     {"set_name": "Set B", "section_filter": "LEFT", "row_filter": None, "vivid_event_id": "6564614", "quantity": 6, "cost_per_ticket": 490.67},
     {"set_name": "Set C", "section_filter": "112", "row_filter": None, "vivid_event_id": "6564610", "quantity": 8, "cost_per_ticket": 324.88},
     {"set_name": "Set D", "section_filter": "LEFT", "row_filter": None, "vivid_event_id": "6564676", "quantity": 5, "cost_per_ticket": 433.20},

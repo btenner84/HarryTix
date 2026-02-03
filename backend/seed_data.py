@@ -4,7 +4,7 @@ Seed script to populate the database with Harry Styles events and your ticket in
 Run with: python seed_data.py
 
 VIVID SEATS EVENT IDS (Verified):
-- Aug 29, 2026 (Sat): 6564568
+- Aug 29, 2026 (Sat): 6564557
 - Sept 18, 2026 (Fri): 6564610
 - Sept 19, 2026 (Sat): 6564614
 - Sept 25, 2026 (Fri): 6564623
@@ -31,7 +31,7 @@ EVENTS = [
         "name": "Harry Styles - Love On Tour",
         "venue": "Madison Square Garden",
         "date": datetime(2026, 8, 29, 20, 0),  # Sat Aug 29
-        "vividseats_id": "6564568",
+        "vividseats_id": "6564557",
         "stubhub_id": "160334450",
         "seatgeek_id": None,
     },

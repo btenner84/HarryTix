@@ -64,7 +64,7 @@ INVENTORY = [
         "section": "200s Row 1",
         "quantity": 4,
         "cost_per_ticket": 471.25,
-        "vivid_event_id": "6564568",
+        "vivid_event_id": "6564557",
         "stubhub_event_id": "160334450",
         "section_filter": "SECTION 2",
         "row_filter": "1",
