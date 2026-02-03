@@ -109,7 +109,7 @@ Repeat for each of your 5 events.
 
 | Set | Event | Section | Qty | Cost | Target Range |
 |-----|-------|---------|-----|------|--------------|
-| A | Aug/Sept MSG | Sec 200s Row 1 | 4 | $1,885 | $800-$1,400 |
+| A | Sat Aug 29 | Sec 200s Row 1 | 4 | $1,885 | $800-$1,400 |
 | B | Sat Sept 19 | GA/PIT | 6 | $2,944 | $800-$1,300 |
 | C | Fri Sept 18 | Sec 112 | 8 | $2,599 | $700-$1,200 |
 | D | Fri Oct 9 | GA/PIT | 5 | $2,166 | $800-$1,350 |

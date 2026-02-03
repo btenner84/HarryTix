@@ -4,7 +4,7 @@ Seed script to populate the database with Harry Styles events and your ticket in
 Run with: python seed_data.py
 
 VIVID SEATS EVENT IDS (Verified):
-- Sept 2, 2026 (Wed): 6564568
+- Aug 29, 2026 (Sat): 6564568
 - Sept 18, 2026 (Fri): 6564610
 - Sept 19, 2026 (Sat): 6564614
 - Sept 25, 2026 (Fri): 6564623
@@ -30,7 +30,7 @@ EVENTS = [
     {
         "name": "Harry Styles - Love On Tour",
         "venue": "Madison Square Garden",
-        "date": datetime(2026, 9, 2, 20, 0),  # Wed Sept 2 (placeholder for Set A)
+        "date": datetime(2026, 8, 29, 20, 0),  # Sat Aug 29
         "vividseats_id": "6564568",
         "stubhub_id": "160334450",
         "seatgeek_id": None,
@@ -110,7 +110,7 @@ async def seed_database():
 
         # Your ticket inventory (27 tickets across 5 sets)
         inventory_items = [
-            # Set A: Sept 2 (placeholder) - Sec 200s Row 1 (Seats 7-10) - 4 tickets - $1,885 total
+            # Set A: Sat Aug 29 - Sec 200s Row 1 (Seats 7-10) - 4 tickets - $1,885 total
             Inventory(
                 event_id=events[0].id,
                 section="Section 200s",
@@ -225,7 +225,7 @@ async def seed_database():
         print(f"Created {len(events)} events")
         print(f"Created {len(inventory_items)} inventory items (35 total tickets)")
         print("\n=== YOUR INVENTORY ===")
-        print("Set A: 4 tickets - Section 200s Row 1 - Sept 2")
+        print("Set A: 4 tickets - Section 200s Row 1 - Aug 29 (Sat)")
         print("Set B: 6 tickets - GA/PIT - Sept 19 (Sat)")
         print("Set C: 8 tickets - Section 112 - Sept 18 (Fri)")
         print("Set D: 5 tickets - GA/PIT - Oct 9 (Fri)")

@@ -41,7 +41,7 @@ async def init_database():
             {
                 "name": "Harry Styles - Love On Tour",
                 "venue": "Madison Square Garden",
-                "date": datetime(2026, 9, 2, 20, 0),
+                "date": datetime(2026, 8, 29, 20, 0),
                 "vividseats_id": "6564568",
                 "stubhub_id": "160334450",
             },
@@ -98,7 +98,7 @@ async def init_database():
 
         # Inventory data (your 27 tickets)
         inventory_data = [
-            # Set A: Sept 2 - Sec 200s Row 1 - 4 tickets
+            # Set A: Aug 29 - Sec 200s Row 1 - 4 tickets
             {
                 "event_idx": 0,
                 "section": "Section 200s Row 1",

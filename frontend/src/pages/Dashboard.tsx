@@ -119,7 +119,7 @@ export function Dashboard() {
                       <td className="cell-market">
                         {set.vivid_market && set.vivid_market.listings_count > 0 ? (
                           <a
-                            href={`https://www.vividseats.com/production/${set.vivid_event_id}`}
+                            href={`https://www.vividseats.com/harry-styles-tickets-new-york-madison-square-garden-${set.event_date?.replace(/-/g, '-')}--concerts-pop/production/${set.vivid_event_id}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="market-link"
@@ -161,7 +161,7 @@ export function Dashboard() {
 
             // Date sort helper
             const dateOrder: Record<string, number> = {
-              'Aug 28': 1, 'Sept 2': 2, 'Sept 18': 3, 'Sept 19': 4, 'Sept 25': 5,
+              'Aug 29': 1, 'Sept 2': 2, 'Sept 18': 3, 'Sept 19': 4, 'Sept 25': 5,
               'Oct 9': 6, 'Oct 17': 7, 'Oct 31': 8
             };
 

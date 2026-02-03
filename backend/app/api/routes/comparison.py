@@ -58,8 +58,8 @@ class ComparisonResponse(BaseModel):
 INVENTORY = [
     {
         "set_name": "Set A",
-        "date": "Aug 28",
-        "event_date": "2026-08-28",
+        "date": "Aug 29",
+        "event_date": "2026-08-29",
         "section": "200s Row 1",
         "quantity": 4,
         "cost_per_ticket": 471.25,
