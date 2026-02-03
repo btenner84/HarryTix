@@ -29,6 +29,7 @@ VividMarketData = MarketData
 class TicketSet(BaseModel):
     set_name: str
     date: str
+    event_date: str
     section: str
     quantity: int
     cost_per_ticket: float
@@ -290,6 +291,7 @@ async def get_comparison():
         ticket_set = TicketSet(
             set_name=inv["set_name"],
             date=inv["date"],
+            event_date=inv["event_date"],
             section=inv["section"],
             quantity=inv["quantity"],
             cost_per_ticket=inv["cost_per_ticket"],

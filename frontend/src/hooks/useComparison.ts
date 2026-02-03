@@ -13,6 +13,7 @@ export interface VividMarketData {
 export interface TicketSet {
   set_name: string;
   date: string;
+  event_date: string;
   section: string;
   quantity: number;
   cost_per_ticket: number;
