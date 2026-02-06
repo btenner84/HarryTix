@@ -55,7 +55,7 @@ async def startup():
     try:
         # Import and init database (config.py handles DATABASE_URL conversion)
         from app.database import engine, Base, async_session_maker
-        from app.models import Event, Inventory
+        from app.models import Event, Inventory, PriceSnapshot
         from sqlalchemy import select
         from datetime import datetime
         from decimal import Decimal

@@ -1,17 +1,21 @@
 """
 Price History API - Stores and retrieves hourly price snapshots
+Now with database persistence!
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime, date
+from datetime import datetime
+from decimal import Decimal
 import httpx
 
-router = APIRouter(prefix="/history", tags=["history"])
+from sqlalchemy import select, desc
+from sqlalchemy.ext.asyncio import AsyncSession
 
-# In-memory storage for now (will persist across requests but not restarts)
-# In production, this would be in a database
-PRICE_HISTORY: list[dict] = []
+from app.database import get_db
+from app.models.snapshot import PriceSnapshot as PriceSnapshotModel
+
+router = APIRouter(prefix="/history", tags=["history"])
 
 # Your inventory (same as comparison.py)
 VIVID_FEE = 0.10
@@ -28,22 +32,25 @@ INVENTORY = [
 ]
 
 
-class PriceSnapshot(BaseModel):
+class PriceSnapshotResponse(BaseModel):
     timestamp: datetime
     set_name: str
     min_price: Optional[float]
     avg_lowest_2: Optional[float]
     listings_count: int
     total_seats: int
-    you_receive: Optional[float]  # After 10% fee
+    you_receive: Optional[float]
     profit_per_ticket: Optional[float]
     total_profit: Optional[float]
     quantity: int
     cost_per_ticket: float
 
+    class Config:
+        from_attributes = True
+
 
 class HistoryResponse(BaseModel):
-    snapshots: list[PriceSnapshot]
+    snapshots: list[PriceSnapshotResponse]
     last_updated: Optional[datetime]
 
 
@@ -86,7 +93,7 @@ async def fetch_vivid_price(
                         if row_num >= max_row:
                             continue
                     except ValueError:
-                        continue  # Skip non-numeric rows
+                        continue
 
                 # Filter for solo tickets only
                 if solo_only and qty != 1:
@@ -111,8 +118,8 @@ async def fetch_vivid_price(
 
 
 @router.post("/snapshot")
-async def take_snapshot():
-    """Take a price snapshot for all sets (call this hourly or manually)"""
+async def take_snapshot(db: AsyncSession = Depends(get_db)):
+    """Take a price snapshot for all sets and save to database"""
     now = datetime.utcnow()
     snapshots_taken = []
 
@@ -135,7 +142,23 @@ async def take_snapshot():
             profit_per_ticket = round(you_receive - inv["cost_per_ticket"], 2)
             total_profit = round(profit_per_ticket * inv["quantity"], 2)
 
-        snapshot = {
+        # Create database record
+        snapshot = PriceSnapshotModel(
+            timestamp=now,
+            set_name=inv["set_name"],
+            min_price=Decimal(str(data["min_price"])) if data["min_price"] else None,
+            avg_lowest_2=Decimal(str(data["avg_lowest_2"])) if data["avg_lowest_2"] else None,
+            listings_count=data["listings_count"],
+            total_seats=data["total_seats"],
+            you_receive=Decimal(str(you_receive)) if you_receive else None,
+            profit_per_ticket=Decimal(str(profit_per_ticket)) if profit_per_ticket else None,
+            total_profit=Decimal(str(total_profit)) if total_profit else None,
+            quantity=inv["quantity"],
+            cost_per_ticket=Decimal(str(inv["cost_per_ticket"])),
+        )
+        db.add(snapshot)
+
+        snapshots_taken.append({
             "timestamp": now.isoformat() + "Z",
             "set_name": inv["set_name"],
             "min_price": data["min_price"],
@@ -147,54 +170,82 @@ async def take_snapshot():
             "total_profit": total_profit,
             "quantity": inv["quantity"],
             "cost_per_ticket": inv["cost_per_ticket"],
-        }
-        PRICE_HISTORY.append(snapshot)
-        snapshots_taken.append(snapshot)
+        })
 
-    return {"status": "ok", "snapshots": snapshots_taken}
+    await db.commit()
+    return {"status": "ok", "snapshots": snapshots_taken, "saved_to_db": True}
 
 
 @router.get("", response_model=HistoryResponse)
-async def get_history(set_name: Optional[str] = None, limit: int = 100):
-    """Get price history, optionally filtered by set name"""
-    snapshots = PRICE_HISTORY.copy()
+async def get_history(
+    set_name: Optional[str] = None,
+    limit: int = 500,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get price history from database, optionally filtered by set name"""
+    query = select(PriceSnapshotModel).order_by(desc(PriceSnapshotModel.timestamp))
 
     if set_name:
-        snapshots = [s for s in snapshots if s["set_name"] == set_name]
+        query = query.where(PriceSnapshotModel.set_name == set_name)
 
-    # Sort by timestamp descending and limit
-    snapshots = sorted(snapshots, key=lambda x: x["timestamp"], reverse=True)[:limit]
+    query = query.limit(limit)
 
-    last_updated = None
-    if snapshots:
-        last_updated = datetime.fromisoformat(snapshots[0]["timestamp"])
+    result = await db.execute(query)
+    snapshots = result.scalars().all()
+
+    last_updated = snapshots[0].timestamp if snapshots else None
 
     return HistoryResponse(
-        snapshots=[PriceSnapshot(**s) for s in snapshots],
+        snapshots=[PriceSnapshotResponse.model_validate(s) for s in snapshots],
         last_updated=last_updated
     )
 
 
 @router.get("/latest")
-async def get_latest():
+async def get_latest(db: AsyncSession = Depends(get_db)):
     """Get the most recent snapshot for each set"""
     latest = {}
-    for snapshot in reversed(PRICE_HISTORY):
-        set_name = snapshot["set_name"]
-        if set_name not in latest:
-            latest[set_name] = snapshot
+
+    for inv in INVENTORY:
+        query = (
+            select(PriceSnapshotModel)
+            .where(PriceSnapshotModel.set_name == inv["set_name"])
+            .order_by(desc(PriceSnapshotModel.timestamp))
+            .limit(1)
+        )
+        result = await db.execute(query)
+        snapshot = result.scalar_one_or_none()
+
+        if snapshot:
+            latest[inv["set_name"]] = {
+                "timestamp": snapshot.timestamp.isoformat() + "Z",
+                "set_name": snapshot.set_name,
+                "min_price": float(snapshot.min_price) if snapshot.min_price else None,
+                "avg_lowest_2": float(snapshot.avg_lowest_2) if snapshot.avg_lowest_2 else None,
+                "listings_count": snapshot.listings_count,
+                "total_seats": snapshot.total_seats,
+                "you_receive": float(snapshot.you_receive) if snapshot.you_receive else None,
+                "profit_per_ticket": float(snapshot.profit_per_ticket) if snapshot.profit_per_ticket else None,
+                "total_profit": float(snapshot.total_profit) if snapshot.total_profit else None,
+                "quantity": snapshot.quantity,
+                "cost_per_ticket": float(snapshot.cost_per_ticket),
+            }
 
     return {"snapshots": list(latest.values())}
 
 
 @router.get("/profit-over-time")
-async def get_profit_over_time():
+async def get_profit_over_time(db: AsyncSession = Depends(get_db)):
     """Get total profit across all sets at each timestamp"""
+    query = select(PriceSnapshotModel).order_by(PriceSnapshotModel.timestamp)
+    result = await db.execute(query)
+    snapshots = result.scalars().all()
+
     # Group by timestamp
     by_timestamp: dict = {}
 
-    for snapshot in PRICE_HISTORY:
-        ts = snapshot["timestamp"]
+    for snapshot in snapshots:
+        ts = snapshot.timestamp.isoformat() + "Z"
         if ts not in by_timestamp:
             by_timestamp[ts] = {
                 "timestamp": ts,
@@ -202,14 +253,14 @@ async def get_profit_over_time():
                 "sets": {},
             }
 
-        profit = snapshot.get("total_profit") or 0
+        profit = float(snapshot.total_profit) if snapshot.total_profit else 0
         by_timestamp[ts]["total_profit"] += profit
-        by_timestamp[ts]["sets"][snapshot["set_name"]] = {
-            "profit": snapshot.get("total_profit"),
-            "price": snapshot.get("avg_lowest_2"),
+        by_timestamp[ts]["sets"][snapshot.set_name] = {
+            "profit": float(snapshot.total_profit) if snapshot.total_profit else None,
+            "price": float(snapshot.avg_lowest_2) if snapshot.avg_lowest_2 else None,
         }
 
     # Sort by timestamp
-    result = sorted(by_timestamp.values(), key=lambda x: x["timestamp"])
+    result_list = sorted(by_timestamp.values(), key=lambda x: x["timestamp"])
 
-    return {"data": result}
+    return {"data": result_list}
