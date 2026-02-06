@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Layout } from '../components/layout/Layout';
 import { useComparison } from '../hooks/useComparison';
@@ -73,7 +74,10 @@ async function takeSnapshot(): Promise<void> {
   await api.post('/history/snapshot');
 }
 
+type TimeFrame = 'all' | '24h' | 'week' | 'month';
+
 export function Analytics() {
+  const [timeFrame, setTimeFrame] = useState<TimeFrame>('all');
   const { data: comparison, isLoading: comparisonLoading } = useComparison();
   const {
     data: history,
@@ -99,22 +103,46 @@ export function Analytics() {
     refetchProfit();
   };
 
-  // Profit chart data
-  const profitChartData = profitData?.data.map((d) => ({
+  // Filter data by time frame
+  const filterByTimeFrame = <T extends { timestamp: string }>(data: T[]): T[] => {
+    if (timeFrame === 'all') return data;
+
+    const now = new Date();
+    const cutoff = new Date();
+
+    switch (timeFrame) {
+      case '24h':
+        cutoff.setHours(now.getHours() - 24);
+        break;
+      case 'week':
+        cutoff.setDate(now.getDate() - 7);
+        break;
+      case 'month':
+        cutoff.setMonth(now.getMonth() - 1);
+        break;
+    }
+
+    return data.filter(d => new Date(d.timestamp) >= cutoff);
+  };
+
+  // Profit chart data with time filter
+  const filteredProfitData = profitData?.data ? filterByTimeFrame(profitData.data) : [];
+  const profitChartData = filteredProfitData.map((d) => ({
     time: formatTime(d.timestamp),
     'Total Profit': Math.round(d.total_profit),
-  })) || [];
+  }));
 
-  // Price chart data - group by timestamp
-  const priceChartData = history?.snapshots
+  // Price chart data - group by timestamp with time filter
+  const filteredSnapshots = history?.snapshots ? filterByTimeFrame(history.snapshots) : [];
+  const priceChartData = filteredSnapshots.length > 0
     ? (() => {
         const grouped: Record<string, PriceSnapshot[]> = {};
-        history.snapshots.forEach((s) => {
+        filteredSnapshots.forEach((s) => {
           if (!grouped[s.set_name]) grouped[s.set_name] = [];
           grouped[s.set_name].push(s);
         });
 
-        const timestamps = [...new Set(history.snapshots.map((s) => s.timestamp))].sort();
+        const timestamps = [...new Set(filteredSnapshots.map((s) => s.timestamp))].sort();
         return timestamps.map((ts) => {
           const point: Record<string, any> = { time: formatTime(ts) };
           Object.keys(grouped).forEach((setName) => {
@@ -149,6 +177,37 @@ export function Analytics() {
         <button className="snapshot-btn" onClick={handleTakeSnapshot}>
           Take Snapshot Now
         </button>
+      </div>
+
+      {/* Time Frame Filter */}
+      <div className="time-filter">
+        <span className="filter-label">Time Range:</span>
+        <div className="filter-buttons">
+          <button
+            className={`filter-btn ${timeFrame === 'all' ? 'active' : ''}`}
+            onClick={() => setTimeFrame('all')}
+          >
+            All Data
+          </button>
+          <button
+            className={`filter-btn ${timeFrame === 'month' ? 'active' : ''}`}
+            onClick={() => setTimeFrame('month')}
+          >
+            Last Month
+          </button>
+          <button
+            className={`filter-btn ${timeFrame === 'week' ? 'active' : ''}`}
+            onClick={() => setTimeFrame('week')}
+          >
+            Last Week
+          </button>
+          <button
+            className={`filter-btn ${timeFrame === '24h' ? 'active' : ''}`}
+            onClick={() => setTimeFrame('24h')}
+          >
+            Last 24h
+          </button>
+        </div>
       </div>
 
       {/* Total Profit Over Time Chart */}
@@ -345,6 +404,49 @@ export function Analytics() {
         }
         .snapshot-btn:hover {
           background: #1d4ed8;
+        }
+
+        .time-filter {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 24px;
+          padding: 16px;
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .filter-label {
+          font-weight: 600;
+          color: #374151;
+        }
+
+        .filter-buttons {
+          display: flex;
+          gap: 8px;
+        }
+
+        .filter-btn {
+          padding: 8px 16px;
+          border: 1px solid #e5e7eb;
+          background: white;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+          border-color: #2563eb;
+          color: #2563eb;
+        }
+
+        .filter-btn.active {
+          background: #2563eb;
+          border-color: #2563eb;
+          color: white;
         }
 
         .chart-section {
