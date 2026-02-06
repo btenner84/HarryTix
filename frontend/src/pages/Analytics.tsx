@@ -55,6 +55,8 @@ function parseTimestamp(timestamp: string): Date {
   // Handle various timestamp formats from backend
   let ts = timestamp;
   if (ts.includes(' ')) ts = ts.replace(' ', 'T');
+  // Handle malformed timestamps like "2025-02-05T19:48:00+00:00Z"
+  if (ts.includes('+00:00Z')) ts = ts.replace('+00:00Z', 'Z');
   if (ts.includes('+00:00')) ts = ts.replace('+00:00', 'Z');
   if (!ts.endsWith('Z') && !ts.includes('+')) ts = ts + 'Z';
   return new Date(ts);

@@ -236,7 +236,7 @@ async def get_latest(db: AsyncSession = Depends(get_db)):
 
         if snapshot:
             latest[inv["set_name"]] = {
-                "timestamp": snapshot.timestamp.isoformat() + "Z",
+                "timestamp": snapshot.timestamp.isoformat().replace('+00:00', 'Z'),
                 "set_name": snapshot.set_name,
                 "min_price": float(snapshot.min_price) if snapshot.min_price else None,
                 "avg_lowest_2": float(snapshot.avg_lowest_2) if snapshot.avg_lowest_2 else None,
@@ -263,7 +263,7 @@ async def get_profit_over_time(db: AsyncSession = Depends(get_db)):
     by_timestamp: dict = {}
 
     for snapshot in snapshots:
-        ts = snapshot.timestamp.isoformat() + "Z"
+        ts = snapshot.timestamp.isoformat().replace('+00:00', 'Z')
         if ts not in by_timestamp:
             by_timestamp[ts] = {
                 "timestamp": ts,
