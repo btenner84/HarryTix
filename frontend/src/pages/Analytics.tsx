@@ -50,10 +50,19 @@ function formatCurrency(value: number | null | undefined): string {
   return `$${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
+function parseTimestamp(timestamp: string): Date {
+  if (!timestamp) return new Date(0);
+  // Handle various timestamp formats from backend
+  let ts = timestamp;
+  if (ts.includes(' ')) ts = ts.replace(' ', 'T');
+  if (ts.includes('+00:00')) ts = ts.replace('+00:00', 'Z');
+  if (!ts.endsWith('Z') && !ts.includes('+')) ts = ts + 'Z';
+  return new Date(ts);
+}
+
 function formatTime(timestamp: string): string {
   if (!timestamp) return '-';
-  // Handle various timestamp formats from backend
-  const date = new Date(timestamp.replace(' ', 'T').replace('+00:00', 'Z'));
+  const date = parseTimestamp(timestamp);
   if (isNaN(date.getTime())) return '-';
   return date.toLocaleString(undefined, {
     month: 'short',
@@ -125,7 +134,7 @@ export function Analytics() {
         break;
     }
 
-    return data.filter(d => new Date(d.timestamp) >= cutoff);
+    return data.filter(d => parseTimestamp(d.timestamp) >= cutoff);
   };
 
   // Profit chart data with time filter
