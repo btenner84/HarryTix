@@ -51,7 +51,10 @@ function formatCurrency(value: number | null | undefined): string {
 }
 
 function formatTime(timestamp: string): string {
-  const date = new Date(timestamp);
+  if (!timestamp) return '-';
+  // Handle various timestamp formats from backend
+  const date = new Date(timestamp.replace(' ', 'T').replace('+00:00', 'Z'));
+  if (isNaN(date.getTime())) return '-';
   return date.toLocaleString(undefined, {
     month: 'short',
     day: 'numeric',

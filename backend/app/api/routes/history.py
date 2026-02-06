@@ -195,8 +195,26 @@ async def get_history(
 
     last_updated = snapshots[0].timestamp if snapshots else None
 
+    # Convert to response format with consistent timestamps
+    response_snapshots = []
+    for s in snapshots:
+        snap_dict = {
+            "timestamp": s.timestamp,
+            "set_name": s.set_name,
+            "min_price": float(s.min_price) if s.min_price else None,
+            "avg_lowest_2": float(s.avg_lowest_2) if s.avg_lowest_2 else None,
+            "listings_count": s.listings_count,
+            "total_seats": s.total_seats,
+            "you_receive": float(s.you_receive) if s.you_receive else None,
+            "profit_per_ticket": float(s.profit_per_ticket) if s.profit_per_ticket else None,
+            "total_profit": float(s.total_profit) if s.total_profit else None,
+            "quantity": s.quantity,
+            "cost_per_ticket": float(s.cost_per_ticket),
+        }
+        response_snapshots.append(PriceSnapshotResponse(**snap_dict))
+
     return HistoryResponse(
-        snapshots=[PriceSnapshotResponse.model_validate(s) for s in snapshots],
+        snapshots=response_snapshots,
         last_updated=last_updated
     )
 
